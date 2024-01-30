@@ -1,0 +1,9 @@
+clear;
+M = csvread('STARLINK-2649.csv');
+lat = M(:,1);
+lon = M(:,2);
+h = ones(length(lat),1)*5000;
+uif = uifigure;
+g = geoglobe(uif);
+mskip = 1:length(lat);
+geoplot(g,lat,lon,"co","MarkerIndices",mskip);

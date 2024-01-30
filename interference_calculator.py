@@ -1,0 +1,572 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Aug 26 12:26:17 2023
+Calculate the interference, SNR, SINR, INR given all the channel paramters
+    - BSs and UEs have pre-defined antenna configuration and build MIMO channels accordingly
+    
+Inputs are channel parameters packed with pandas-dataframe
+Outputs are SNR, SINR, INR, and so on
+@author: seongjoon kang
+"""
+import numpy as np
+import sys
+import os
+sys.path.append(os.getcwd()+"/uav_interference_analysis")
+from src.mmwchanmod.sim.get_channel_from_ray_tracing_data import get_channel_from_ray_tracing_data
+from src.mmwchanmod.sim.array import URA, RotatedArray, multi_sect_array
+from src.mmwchanmod.sim.antenna import Elem3GPP
+from src.mmwchanmod.sim.chanmod import dir_path_loss_multi_sect
+import pickle
+import copy
+
+
+#from memory import Memory
+#from power_optimizer import Power_Optimizer
+
+class InterferenceCaculator(object):
+    
+    def __init__(self, Nf = 7, BW = 400e6, tx_power_ue = 23, tx_power_gnb = 33,
+                 frequency = 6e9, dir_= 'heraldsquare_mmwave_6GHz',
+                 nant_gnb = np.array([8,8])):
+        ## basic paramter settings for computing metrics such as SNR, SINR, and INR. 
+        #self.Nf = Nf
+        #self.BW = BW
+        self.loss_list = []
+        self.min_loss = 1e3
+        self.dir_ = dir_
+
+        KT = -174 #[dBm/Hz] Johnson-Nyquest noise, noise power (dBm) in a register at room temperature
+        # P_dbm (=KT) = 10log10(K_b T f/1mW): K_b: boltzmann's constant, T: temperature, f frequency
+        # P_dbm (=KT) = -173.8 +10log10(f) at room temperature
+
+        self.noise_power = KT + Nf + 10*np.log10(BW) # this value is fixed once bandwdith and noise figures are determined
+        self.tx_power_ue = tx_power_ue
+        self.tx_power_gnb = tx_power_gnb
+        self.frequency = frequency
+        #EK = -198.6 # [dBm/Hz] # pow2db(physconst('Boltzmann'))+30
+        #G_T = 13
+        #BW_sat = 30e6 # 30MHz ,38.821 Table 6.1.1.1-5, Maximum bandwidth for up and downlink
+        thetabw_, phibw_ = 65, 65
+
+        if frequency >13e9:
+            nant_ue = np.array([1, 3])
+        else:
+            nant_ue = np.array([1, 2])
+
+        nant_gnb = nant_gnb
+
+        
+        self.nant_n_ue = nant_ue[0]*nant_ue[1]
+        self.nant_n_gnb = nant_gnb[0]*nant_gnb[1]
+        #lam = PhyConst.light_speed / frequency
+        
+        # define antenna element for UE and BS
+        element_ue = Elem3GPP(thetabw=thetabw_, phibw=phibw_)
+        elem_bs = Elem3GPP(thetabw=thetabw_, phibw=phibw_)
+        # define antenna array for UE 
+        self.arr_ue_init = URA(elem=element_ue, nant=nant_ue, fc=frequency)
+        # define antenna array for gNB
+        arr_gnb = URA(elem=elem_bs, nant=nant_gnb,  fc= frequency) 
+        # configure the antenna array of BSs having 3-sectors horizontally and down-tilted by -12
+        self.arr_gnb = multi_sect_array(arr_gnb, sect_type='azimuth', nsect=3, theta0=-12)
+
+        ue_codebook_name = f'{self.dir_}/ue_codebook_{int(self.frequency / 1e9)}GHz.txt'
+        self.ue_cbook = np.loadtxt(ue_codebook_name, dtype=complex)
+
+        if 0:
+            # load VQ codebook
+            file_name = f'{dir_}/bs_codebook_{int(self.frequency / 1e9)}GHz.txt'
+            with open(file_name, 'rb') as f:
+                self.vq_codebook = np.loadtxt(file_name, dtype=complex)
+
+            if self.nant_n_gnb ==25:
+                file_name2 = f'data/codebook_{int(self.frequency / 1e9)}GHz_2_5t5.pickle'
+            else:
+                file_name2 = f'data/codebook_{int(self.frequency / 1e9)}GHz_2_8t8.pickle'
+
+            with open(file_name2, 'rb') as f:
+                #self.bs_cbook_dict = pickle.load(f)
+                self.bs_cbook = pickle.load(f)
+                print('========= BS codebooks are loaded =============')
+                #print(f'elevation angles to null: {list(self.bs_cbook_dict.keys())}')
+                print(f'UE codebook size:{self.ue_cbook.shape}')
+                print(f'BS codebook size(itf-null,  VQ):{self.bs_cbook.shape,  self.vq_codebook.shape}')
+
+
+    def build_MIMO_channels(self,channel_parameters, associated_pair_dict,
+                                   ue_rand_azm_elev_dict = None, three_gpp_pwctl = False,
+                                    decide_beamforming_bf = True,
+                                   beamforming_scheme = 'SVD', uplink= False, f_c = 12e9-10e6):
+        ### this function builds "uplink" MIMO channels for all the possible links between all the BSs and UEs
+        
+        # channel_parameters: dictionary including channel parameters in the form of pandas-dataframe
+            # structure of this dictonary variables are the following
+            # bs_index -> ue_index -> corresponding data frame
+        # associated_pair_dict: a dictionary of all the associated pairs between BSs and UEs
+            # bs_index-> associated ue_index
+        
+        #three_gpp_pwctl: power control algorithm specificed in 3gpp, allocation of total Tx power
+        
+
+        
+        # associated channel dictionary corresponding to each UE
+        associated_H = dict() # ue_idx -> H
+        # a list of interfering channel dictonary corresponding to each UE
+        interfering_H = dict() # (ue_idx, bs_idx) -> all interfering channel matrices 
+        associated_pair_dict_reversed = dict()
+        
+        #initial power of UEs are 23 dB, full power transmission
+        ue_tx_power_map = {associated_pair_dict[bs_idx]:self.tx_power_ue for bs_idx in associated_pair_dict.keys()}
+        # build associated channels first
+        self.bs_to_sect_ind_map = dict()
+
+        for bs_idx in channel_parameters.keys():
+            serv_ue_idx = associated_pair_dict[bs_idx]
+
+            if ue_rand_azm_elev_dict == None:
+                rand_azm = np.random.uniform(-180, 180, (1,))
+                rand_elev = np.random.uniform(0, 90, (1,))
+            else:
+                # roate antenna array of UE in random direction
+                (rand_azm, rand_elev) = ue_rand_azm_elev_dict[bs_idx][serv_ue_idx]
+
+            arr_ue = RotatedArray(copy.deepcopy(self.arr_ue_init), theta0=rand_elev, phi0=rand_azm, drone=False)
+            chan_param = channel_parameters[bs_idx][serv_ue_idx]
+            if np.array(np.isnan(chan_param['n_path'])):  # if the link is outage
+                H = np.zeros((self.nant_n_gnb, self.nant_n_ue))  # set up a virtual channel matrix
+                path_loss = np.array([np.nan])
+                bs_elem_gain = np.array([np.nan])
+                ue_elem_gain = np.array([np.nan])
+                ind_=0
+            else:
+
+                chan = get_channel_from_ray_tracing_data(chan_param)
+
+                out = dir_path_loss_multi_sect(self.arr_gnb, [arr_ue], chan, isdrone=False,
+                                               return_elem_gain=True)
+
+                ind_ = out['sect_ind']
+                bs_elem_gain = out['bs_elem_gain_dict'][ind_]
+                ue_elem_gain = out['ue_elem_gain_dict'][ind_]
+
+                bs_elem_gain_lin = 10 ** (0.05 * bs_elem_gain)
+                ue_elem_gain_lin = 10 ** (0.05 * ue_elem_gain)
+                path_loss = np.array(chan.pl)
+                path_gain = 10 ** (-0.05 * path_loss)
+
+                g = path_gain * bs_elem_gain_lin * ue_elem_gain_lin
+
+                bs_sv = out['bs_sv_dict'][ind_]  # spatial signater in optimal sector of BS
+                ue_sv = out['ue_sv_dict'][ind_]  # spatial signature in UE, ind_ doesn't affect
+
+                bs_sv = bs_sv * g[:, None]
+                bs_sv, ue_sv = bs_sv.T, ue_sv.T  # shape = (N_ant, N_path)
+
+                # 'uplink' channel matrix averaged over wideband
+                # that is the sum of the all multipath components
+                n_path = int(chan_param['n_path'])
+                dly = [chan_param[f'delay_{i + 1}'] for i in range(n_path)]
+                exp_phase = np.exp(-2 * np.pi * 1j * f_c * np.array(dly))
+                H = (exp_phase[None] * bs_sv).dot(np.matrix.conj(ue_sv).T)  # shape = (N_ant_bs,  N_ant_ue), uplink channel
+
+            if uplink is True:
+                associated_H[serv_ue_idx] = H
+                associated_pair_dict_reversed[serv_ue_idx] = bs_idx
+            else:
+                H = np.matrix.conj(H).T # downlink channel
+                associated_H[bs_idx] = H
+
+            if three_gpp_pwctl is True:  # and np.array(np.isnan(chan_param['n_path'])) is False: #tx_power_ue_map
+                P_ex = (path_loss - bs_elem_gain - ue_elem_gain) * 0.6 + (-78)
+                P_ex = 10 * np.log10(np.sum(10 ** (0.1 * P_ex)))
+                ue_tx_power_map[serv_ue_idx] = min(P_ex, self.tx_power_ue)
+
+            self.bs_to_sect_ind_map[bs_idx]=ind_ # save the index of an associated sector of BS
+
+        # build interfering channels
+        for bs_idx in channel_parameters.keys():
+            for j, ue_idx in enumerate(channel_parameters[bs_idx].keys()):
+                if associated_pair_dict[bs_idx] != ue_idx: # crate channel for only case that UEs are not associated with BSs
+                    chan_param = channel_parameters[bs_idx][ue_idx]
+
+                    if ue_rand_azm_elev_dict == None:
+                        rand_azm = np.random.uniform(-180, 180, (1,))
+                        rand_elev = np.random.uniform(0, 90, (1,))
+                    else:
+                        # roate antenna array of UE in random direction
+                        serv_ue_idx = associated_pair_dict[bs_idx]
+                        (rand_azm, rand_elev) = ue_rand_azm_elev_dict[bs_idx][serv_ue_idx]
+
+                    arr_ue = RotatedArray(copy.deepcopy(self.arr_ue_init), theta0=rand_elev,phi0=rand_azm,  drone =False)
+
+                    if np.array(np.isnan(chan_param['n_path'])):# if the link is outage
+                        H = np.zeros((self.nant_n_gnb, self.nant_n_ue)) # set up a virtual channel matrix
+                        path_loss = np.array([np.nan])
+                        bs_elem_gain = np.array([np.nan])
+                        ue_elem_gain = np.array([np.nan])
+                    else:
+
+                        chan = get_channel_from_ray_tracing_data(chan_param)
+
+                        out = dir_path_loss_multi_sect(self.arr_gnb, [arr_ue], chan, isdrone= False,
+                                                    return_elem_gain= True)
+
+                        ind_ = self.bs_to_sect_ind_map[bs_idx] # find the sector index serving UE
+                        bs_elem_gain = out['bs_elem_gain_dict'][ind_]
+                        ue_elem_gain = out['ue_elem_gain_dict'][ind_]
+
+                        bs_elem_gain_lin = 10**(0.05*bs_elem_gain)
+                        ue_elem_gain_lin = 10**(0.05*ue_elem_gain)
+                        path_loss = np.array(chan.pl)
+                        path_gain = 10**(-0.05*path_loss)
+
+                        g = path_gain*bs_elem_gain_lin*ue_elem_gain_lin
+
+                        bs_sv = out['bs_sv_dict'][ind_] # spatial signater in optimal sector of BS
+                        ue_sv = out['ue_sv_dict'][ind_] # spatial signature in UE, ind_ doesn't affect
+
+                        bs_sv = bs_sv *g[:,None]
+                        bs_sv, ue_sv = bs_sv.T, ue_sv.T # shape = (N_ant, N_path)
+
+                        # 'uplink' channel matrix averaged over wideband
+                        # that is the sum of the all multipath components
+                        n_path = int(chan_param['n_path'])
+                        dly = [chan_param[f'delay_{i + 1}'] for i in range(n_path)]
+                        exp_phase = np.exp(-2 * np.pi * 1j * f_c * np.array(dly))
+                        H = (exp_phase[None] * bs_sv).dot(np.matrix.conj(ue_sv).T)  # shape = (N_ant_bs,  N_ant_ue), uplink channel
+
+                    if uplink is False:# if channel is downlink
+                        H = np.matrix.conj(H).T
+                        interfering_H[(bs_idx, ue_idx)] = H
+                    else:
+                        interfering_H[(ue_idx, bs_idx)] = H
+
+
+
+        self.associated_H = associated_H
+        self.interfering_H = interfering_H
+        if uplink is True:
+            self.associated_pair_dict = associated_pair_dict_reversed # we need map from ue_idx to bs_idx
+            self.tx_power_map = ue_tx_power_map
+        else:
+            self.associated_pair_dict = associated_pair_dict  # we need map from ue_idx to bs_idx
+            self.tx_power_map = {bs_idx:self.tx_power_gnb for bs_idx in channel_parameters.keys()}
+
+        #if decide_beamforming_bf == True:
+        #    self.decide_beamforming_vectors(beamforming_scheme = beamforming_scheme,
+        #                                    indices_selected =list(associated_H.keys()), uplink=uplink)
+
+
+
+    def create_similariry_table(self, associated_H):
+        self.sim_table = dict()
+        for _idx in associated_H.keys():
+            h_i = associated_H[_idx]
+            elev_ang = np.arange(10,90, step = 10)
+            h_norm = np.linalg.norm(h_i, axis=1)
+            h_i = h_i / (h_norm[:, None])
+
+            for elev in elev_ang:
+                e = self.arr_ue_init.sv(0,elev)
+                e = e/np.linalg.norm(e)
+                u = np.abs(h_i.dot(e.conj().T))
+                simty = u.squeeze()
+                self.sim_table[(_idx, elev)] = np.mean(simty)
+
+
+    def decide_beamforming_vectors(self,associated_H = None,
+                          indices_selected = None,
+                          interfering_H = None, 
+                          tx_power_ue_map = None,
+                          beamforming_scheme = 'SVD',
+                          lambda_ = 1e3,
+                         # sat_elev_ang_observed:list() = None,
+                          uplink = True,
+                          sat_itf_H = None):
+        self.tx_beamforming_vect_set = dict()
+        self.rx_beamforming_vect_set = dict()
+        if associated_H == None or interfering_H == None or tx_power_ue_map == None:
+            associated_H = self.associated_H
+            interfering_H = self.interfering_H
+            tx_power_map = self.tx_power_map
+
+        ue_cbook = self.ue_cbook
+        if beamforming_scheme == 'codebook':
+            #file_name2 = f'{self.dir}/bs_codebook_{int(self.frequency/1e9)}GHz.txt'
+            bs_cbook = self.bs_cbook#_dict
+        elif beamforming_scheme=='DFT':
+            bs_cbook = self.dft_codebook  # _dict
+        elif beamforming_scheme == 'VQ':
+            bs_cbook = self.vq_codebook  # _dict
+        
+        tx_beamforming_vect_set, rx_beamforming_vect_set = dict(), dict()
+        delta_g_list = []
+
+        for _idx in indices_selected: # this can be index of BS or UE
+            # beamforming vector toward BS in uplink channel
+            H_serv = associated_H[_idx]
+            if beamforming_scheme == 'SVD':
+                U, S, Vh = np.linalg.svd(H_serv)
+                w_r = U[:, 0]  # take maximum eigen vector as decoder
+                w_t = np.conj(Vh[0])
+                w_t_old = w_t
+                # each component of w_t is expected as exp(-j*phase), but
+                # w_t is already normalized because Vh is unitary matrix
+            elif beamforming_scheme == 'codebook' or beamforming_scheme=='DFT' or beamforming_scheme=='VQ':
+                U, S, Vh = np.linalg.svd(H_serv)
+                w_r = U[:, 0]  # take maximum eigen vector as decoder
+                w_t_old = np.conj(Vh[0])
+                # find optimal beaforming vectors from UE and BS codebooks
+                #elev_list = sat_elev_list_per_ind[_idx]
+                # histogram-based clustering of elevation angles
+                # find the most frequent elevation angles and a corresponding angle-bin
+                bs_cbook = bs_cbook
+                gain_max = -1e5
+                for b_i in range(bs_cbook.shape[0]):
+                    for u_i in range(ue_cbook.shape[0]):
+                        bs_c = bs_cbook[b_i][:,None]
+                        #print(np.linalg.norm(bs_c))
+                        ue_c = ue_cbook[u_i][:,None]
+                        #print(bs_c.shape, H_serv.shape, ue_c.shape)
+                        if uplink is True:
+                            gain = np.abs(np.conj(bs_c).T.dot(H_serv).dot(ue_c))**2
+                            if gain > gain_max:
+                                gain_max = gain
+                                w_t = ue_c
+                                w_r = bs_c
+                        else:
+                            gain = np.abs(np.conj(ue_c).T.dot(H_serv).dot(bs_c)) ** 2
+                            if gain > gain_max:
+                                gain_max = gain
+                                w_t = bs_c
+                                w_r = ue_c
+
+            elif beamforming_scheme == 'null_los' or beamforming_scheme == 'null_nlos':
+                U, _, Vh = np.linalg.svd(H_serv)
+                w_r = U[:, 0]  # take maximum singular vector as decoder
+                w_r = w_r[:, None]
+                w_t_old = np.conj(Vh[0])
+                bs_to_sat_itf = []
+
+                for sat_idx in sat_itf_H[_idx].keys():
+                    bs_to_sat_itf.append(sat_itf_H[_idx][sat_idx])
+
+                bs_to_sat_itf = np.array(bs_to_sat_itf).T
+                N_t, N_sat = bs_to_sat_itf.shape
+                bs_to_sat_itf = np.sqrt(N_t * N_sat) * bs_to_sat_itf / np.linalg.norm(bs_to_sat_itf, ord='fro')
+
+                N_t, N_r = H_serv.shape
+                H_serv2 = np.sqrt(N_t * N_r) * H_serv / np.linalg.norm(H_serv, ord='fro')
+
+                cov_terr = H_serv2.conj().T.dot(w_r).dot(w_r.conj().T).dot(H_serv2)
+                cov_itf = bs_to_sat_itf.dot(bs_to_sat_itf.conj().T)
+
+                Q = cov_terr - lambda_ * cov_itf
+
+                eigen_values, v_nulls = np.linalg.eig(Q)
+                I = np.argsort(eigen_values)[::-1]
+                v_nulls = v_nulls[:, I]
+                v_null = v_nulls[:, 0]
+                w_t = v_null
+
+
+            g = 10*np.log10(abs(w_r.conj().T.dot(H_serv).dot(w_t))**2)
+            g_old = 10*np.log10(abs(w_r.conj().T.dot(H_serv).dot(w_t_old))**2)
+            g, g_old = np.squeeze(g), np.squeeze(g_old)
+
+            _delta_g = float(g_old - g)
+            delta_g_list.append(10**(0.1*_delta_g))
+            # save beamforming vectors before power allocation
+            # for downlink case: bs_idx -> beamforming vector
+            # for uplink case: ue_idx -> beamforming vector
+
+            tx_beamforming_vect_set[_idx] = w_t
+            rx_beamforming_vect_set[_idx] = w_r
+
+        self.tx_beamforming_vect_set = tx_beamforming_vect_set
+        #print(self.tx_beamforming_vect_set.keys())
+        self.rx_beamforming_vect_set = rx_beamforming_vect_set
+
+        return delta_g_list
+    
+    def caclulate_metrics(self, associated_H = None, 
+                          interfering_H = None,
+                          tx_beamforming_vect_set = None,
+                          rx_beamforming_vect_set = None,
+                          associated_pair_dict = None,
+                          is_waterfilling = False,
+                          ind_selected:list()= None,
+                         ):
+        
+        if associated_H == None or interfering_H == None:
+            associated_H = self.associated_H
+            interfering_H = self.interfering_H
+            tx_beamforming_vect_set = self.tx_beamforming_vect_set
+            rx_beamforming_vect_set = self.rx_beamforming_vect_set
+            associated_pair_dict = self.associated_pair_dict
+            tx_power_map = self.tx_power_map
+            tx_power_amplitude_map = {_idx:10**(0.05*tx_power_map[_idx]) for _idx in tx_power_map.keys()}
+            
+
+        SNR_list, SINR_list, INR_list = [], [], []        
+        # calculate interference power to other uplink transmision caused by this UE
+        noise_power_lin = 10**(0.1*self.noise_power)
+        for _idx in ind_selected:
+            # extract serving channels and beamforming vectors
+            H_serv = associated_H[_idx]
+            w_t = tx_beamforming_vect_set[_idx]
+            
+            tx_power_amplitude_lin = tx_power_amplitude_map[_idx]#10**(0.05*tx_power_ue_map[ue_idx])
+
+            # allocate Tx power across antennas
+            #w_t = self.allocate_power_across_antennas(w_t.squeeze(), tx_power_amplitude_lin)
+            w_t = w_t*tx_power_amplitude_lin
+            # receive beamforming vector in the serving BS
+            w_r = rx_beamforming_vect_set[_idx]
+
+            rx_power = np.abs(w_r.conj().T.dot(H_serv).dot(w_t))**2
+
+            rx_power = 10*np.log10(max(rx_power, 1e-22))
+            SNR = rx_power - self.noise_power
+            SNR_list.append(float(np.squeeze(SNR)))
+            
+            serving_idx = associated_pair_dict[_idx]
+            itf_power = 0
+            for _idx_itf in ind_selected:
+                if _idx != _idx_itf:
+                    
+                    H_itf = interfering_H[(_idx_itf, serving_idx)] # interference channel from other UEs to the serving BS
+                    w_t_itf = tx_beamforming_vect_set[_idx_itf] # transmit beamforming vector from other UEs
+                    
+                    ## allocate power for interference channels
+                    tx_power_amplitude_lin = tx_power_amplitude_map[_idx_itf]
+                    w_t_itf = self.allocate_power_across_antennas(w_t_itf.squeeze(), tx_power_amplitude_lin)
+                    
+                    itf_power_i = np.abs(w_r.conj().T.dot(H_itf).dot(w_t_itf))**2
+                    itf_power += itf_power_i # interferenc powers are summed up in linear scale
+                    
+            itf_plus_noise = itf_power + noise_power_lin
+            
+            SINR = rx_power - 10*np.log10(itf_plus_noise)
+            itf_power = np.maximum(itf_power, 1e-20)
+            INR = 10*np.log10(itf_power/noise_power_lin)
+        
+            SINR_list.append(float(np.squeeze(SINR)))
+            INR_list.append(float(np.squeeze(INR)))
+
+        return SNR_list, SINR_list, INR_list
+
+    def build_SAT_channel(self, channel_parameters, sat_to_bs = True, bs_index = None, f_c = 12e9-10e6):
+        ### this function builds "uplink" MIMO channels for all the possible links between all the BSs and UEs
+        # channel_parameters: dictionary including channel parameters in the form of pandas-dataframe: bs_index -> channel parameters
+
+        sat_H_list = dict()
+
+        for _idx in channel_parameters.keys(): # _idx can be index of BS or satellites
+
+            chan_param = channel_parameters[_idx]
+            # roate antenna array of UE in random direction
+            arr_ue = RotatedArray(self.arr_ue_init, drone=False)
+            #print(chan_param['n_path'])
+            if np.array(np.isnan(chan_param['n_path'])):  # if the link is outage
+                if sat_to_bs is True:
+                    H = np.zeros((self.nant_n_gnb,))  # set up a virtual channel matrix
+                else:
+                    H = np.zeros((self.nant_n_ue,))  # set up a virtual channel matrix
+
+                path_loss = np.array([np.nan])
+                bs_elem_gain = np.array([np.nan])
+                ue_elem_gain = np.array([np.nan])
+            else:
+                chan = get_channel_from_ray_tracing_data(chan_param)
+                # place a virtual UE or BS in the location of satellite
+                if sat_to_bs is True:
+                    out = dir_path_loss_multi_sect(self.arr_gnb, [arr_ue], chan, isdrone=False, disable_ue_elemgain =True, # here ue can be satellite
+                                               return_elem_gain=True, invert = True)
+                else:
+                    out = dir_path_loss_multi_sect(self.arr_gnb, [arr_ue], chan, isdrone=False, disable_bs_elemgain=True, # here gnb can be satellite
+                                                   return_elem_gain=True)
+                # obtain the associated index of a sector
+                if bs_index != None:
+                    sector_ind = self.bs_to_sect_ind_map[bs_index]
+                else:
+                    sector_ind = self.bs_to_sect_ind_map[_idx]
+                #print(sector_ind)
+                if sat_to_bs is True:
+                    _elem_gain = out['bs_elem_gain_dict'][sector_ind]
+                else:
+                    _elem_gain = out['ue_elem_gain_dict'][sector_ind]
+
+                _elem_gain_lin = 10 ** (0.05 * _elem_gain)
+
+                path_loss = np.array(chan.pl)
+                path_gain = 10 ** (-0.05 * path_loss)
+
+                g = path_gain * _elem_gain_lin #* ue_elem_gain_lin
+                if sat_to_bs is True:
+                    _sv = out['bs_sv_dict'][sector_ind]  # spatial signature in optimal sector of BS
+                else:
+                    _sv = out['ue_sv_dict'][sector_ind]
+
+                n_path = int(chan_param['n_path'])
+                dly = [chan_param[f'delay_{i + 1}'] for i in range(n_path)]
+                exp_phase = np.exp(-2 * np.pi * 1j * f_c * np.array(dly))
+                _sv = (exp_phase[:, None] * _sv) * g[:, None]
+                H = _sv.sum(0)   # channel frequency response
+
+            sat_H_list[_idx] = H
+
+        return sat_H_list
+
+    def allocate_power_across_antennas(self, w_t, 
+                                    tx_power_amplitude_ue_lin = 10**(0.05*23),# 23dBm is maximum Tx power of UE
+                                    water_filling_algorithm = False, # waterfilling algorithms
+                                    S = None): # singular values of channel matrix, H
+     # power allocation across antennas given total Tx power
+     if water_filling_algorithm is True:
+         # this multiplication is needed because w_t is already normalized
+         # w_t_i is not exponential term of phase
+         power_list = self.water_filling_algorithm(S)*len(w_t) 
+         power_amp_per_ant = np.sqrt(power_list)
+     else:
+         # in this case, the power is eqully allocated across all antennas of a transmitter
+         power_amp_per_ant = np.tile(1, len(w_t))*tx_power_amplitude_ue_lin #/np.linalg.norm(w_t) (= len(w_t))
+
+     # 0<w_t_i <1 ,and |w_t|^2 = 1
+     w_t = w_t*power_amp_per_ant
+     
+     return w_t
+        
+    def water_filling_algorithm(self, S):
+        # water filling algorithms to allocate powers to individual antennas
+        # return power values per antenna
+        N0 = 10**(0.1*self.noise_power)
+        tx_power_ue_lin = 10**(0.1*self.tx_power_ue)
+        # in case that S includes zeros
+        S = np.maximum(S,1e-22) # remove zero elements from S
+        # we should decide the bounds, alpha, to fill water
+        thresh_hold = 1e-6
+        N = len(S) # total number of Tx antennas
+        alpha_L = (N0/S).min() # intial lower bound of alpha
+        alpha_U = (tx_power_ue_lin + (N0/S).sum())/N
+        alpha_bar = (alpha_U + alpha_L)/2 # initial value of water level
+        while abs(alpha_U- alpha_L) > thresh_hold:
+            alpha_bar = (alpha_U + alpha_L)/2
+            power_list = np.maximum(1/alpha_bar - N0/S,0)
+            if tx_power_ue_lin>power_list.sum():
+                alpha_U = alpha_bar
+            else:
+                alpha_L = alpha_bar
+        # use alpha_bar as the bounds to fill water
+        power_list= np.maximum(1/alpha_bar - N0/S,0)
+        return power_list
+
+#    @staticmethod
+def min_dist_check(df):
+    tx,ty, tz = df['tx_x'], df['tx_y'], df['tx_z']
+    rx, ry, rz = df['rx_x'], df['rx_y'], df['rx_z']
+    dist2d = np.sqrt((tx-rx)**2 + (ty-ry)**2)
+    if dist2d>35: # minimum 2-d distance in rural scenario by 3GPP 38.901
+        return True
+    else:
+        return False
