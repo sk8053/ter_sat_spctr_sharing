@@ -9,4 +9,4 @@ Our findings offer a promising pathway for efficient spectrum sharing in the upp
 *Seongjoon Kang, Giovanni Geraci, Marco Mezzavilla, Sundeep Rangan
 https://arxiv.org/abs/2311.12965
 
-This paper will be published in ICC 2024
+This paper will be published in [ICC 2024](https://icc2024.ieee-icc.org/)
