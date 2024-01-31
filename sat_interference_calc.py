@@ -7,7 +7,7 @@ import pickle
 import pandas as pd
 from choose_sat import ChooseServingSat
 from tqdm import tqdm
-from interference_calculator import InterferenceCaculator, #min_dist_check
+from interference_calculator import InterferenceCaculator#, #min_dist_check
 import argparse
 import random
 
@@ -47,7 +47,6 @@ uplink = args.uplink
 total_observ_time = args.total_observ_time  # [min]
 n_iterations = args.n_iter  # number of iteration for more randomization
 beamforming_scheme = args.bf
-is_save = True
 n_ant = args.n_ant
 nant_gnb = np.array([n_ant,n_ant])
 lambda_ = args.lambda_
@@ -59,13 +58,11 @@ if uplink: # terrestrial uplink
 else:
     print('downlink transmission')
 
-
-
 print(f'number of interfering UE or BS: {n_itf}')
 print(f'total observation time: {total_observ_time}')
 print(f'beamforming scheme: {beamforming_scheme} and URA:{nant_gnb}')
 print(f'lambda: {lambda_}')
-print(f'save data:{is_save}')
+
 
 tx_power_ue = 23
 tx_power_gnb = 33
@@ -110,7 +107,6 @@ choose_sat = ChooseServingSat(obs_lat, obs_lon, p, freq=freq, dir_=dir_sat_chan)
 with open(sat_track_file_name, 'rb') as handle:
     tracked_data = pickle.load(handle)
 
-
 rx_xyz = np.loadtxt('rural_12GHz/rural_ue_loc.txt') # locations of Rx
 rxy = rx_xyz[:,:2]
 tx_xyz = np.loadtxt('rural_12GHz/rural_bs_loc.txt') # locations of Tx
@@ -129,6 +125,13 @@ for bs_ind in tqdm(range(total_bs)):
     df = pd.read_csv(f'{dir_bs_to_ue}/bs_{bs_ind + 1}.csv', engine='python')
     df_bs_ue_list[bs_ind] = df
 
+rand_azm_elev_dict = {bs_ind: dict() for bs_ind in range(total_bs)}
+for bs_idx in range(total_bs):
+    for ue_idx in range(len(rand_elev_total[bs_idx])):
+        rand_azm = rand_azm_total[bs_idx][ue_idx]
+        rand_elev = rand_elev_total[bs_idx][ue_idx]
+        rand_azm_elev_dict[bs_idx][ue_idx] = (rand_azm, rand_elev)
+
 itf_list = [] #inteference powers
 # SNR, SINR, INR
 snr_list_ter, sinr_list_ter, inr_list_ter = [], [], []
@@ -138,7 +141,6 @@ for iter in tqdm(range(n_iterations)):  # repeat for randomization
     associated_ue_indices = [] # associated UEs for each iteration
     # if the associated UEs are selected,
     # we should choose the corresponding rotations between UEs and BSs
-    rand_azm_elev_dict = {bs_ind: dict() for bs_ind in range(total_bs)}
     # interfering BSs
     itf_bs_indices = []
 
@@ -157,11 +159,6 @@ for iter in tqdm(range(n_iterations)):  # repeat for randomization
             ue_index_associated = np.where(SNR_all[bs_idx] == max_v_new)[0][0]
             associated_ue_indices.append(ue_index_associated)
 
-            rand_azm = rand_azm_total[bs_idx][ue_index_associated]
-            rand_elev = rand_elev_total[bs_idx][ue_index_associated]
-            rand_azm_elev_dict[bs_idx][ue_index_associated] = (rand_azm, rand_elev)
-
-
 
     # associated channels can be easily found from bs_ind  and ue_ind
     # channel parameters between bs_ind and ue_ind as dataframe
@@ -172,7 +169,6 @@ for iter in tqdm(range(n_iterations)):  # repeat for randomization
             channel_parameters[bs_ind][ue_ind] = chan_param_
     # associated pair between UE and BS
     associated_pair_dict = {bs_idx: ue_idx for bs_idx, ue_idx in zip(itf_bs_indices, associated_ue_indices)}
-
 
 
     # decide the index of interfering UEs or BSs
