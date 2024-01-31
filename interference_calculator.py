@@ -194,8 +194,8 @@ class InterferenceCaculator(object):
                         rand_elev = np.random.uniform(0, 90, (1,))
                     else:
                         # roate antenna array of UE in random direction
-                        serv_ue_idx = associated_pair_dict[bs_idx]
-                        (rand_azm, rand_elev) = ue_rand_azm_elev_dict[bs_idx][serv_ue_idx]
+                        # serv_ue_idx = associated_pair_dict[bs_idx]
+                        (rand_azm, rand_elev) = ue_rand_azm_elev_dict[bs_idx][ue_idx]
 
                     arr_ue = RotatedArray(copy.deepcopy(self.arr_ue_init), theta0=rand_elev,phi0=rand_azm,  drone =False)
 
