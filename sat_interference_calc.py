@@ -88,13 +88,16 @@ SNR_all = np.zeros((total_bs, total_ue))  # shape = (total number of BSs, total 
 rand_azm_total = dict()
 rand_elev_total = dict()
 for bs_idx in range(total_bs):  # for all BSs
-    f = f'{dir_}/SNR_data_codebookBeamforming/SNR_and_angles_%d.pickle' % (bs_idx + 1)
+
+    f = f'{dir_}/SNR_data_codebookBeamforming/SNR_and_data_%d_outdoor.pickle' % (bs_idx + 1)
     with open(f, 'rb') as handle:
         data = pickle.load(handle)
     SNR_all[bs_idx] = data['SNR'] # read SNR
     #random azimuth angle of all UE per BS after association
-    rand_azm_total[bs_idx] = data['azm'] # read azimuth angles
-    rand_elev_total[bs_idx] = data['elev'] # read elevation angles
+    rand_azm_total[bs_idx] = data['rand_azm'] # read azimuth angles
+    rand_elev_total[bs_idx] = data['rand_elev'] # read elevation angles
+
+
 
 # remove NAN values
 SNR_all[np.isnan(SNR_all)] = -200
@@ -118,7 +121,7 @@ for i in range(len(txy)):
     txy_i = txy[i]
     dxy = np.linalg.norm(rxy - txy_i[None], axis = 1)
     I = np.argsort(dxy)[:84] # assume  84 UEs are close to one BS (8496/104)
-    bs_to_ues[i].append(I)
+    bs_to_ues[i] = I
 # collect dataframe including one BS to all possible UEs
 df_bs_ue_list = dict() # BS idx -> dataframe including all UEs
 for bs_ind in tqdm(range(total_bs)):
@@ -148,6 +151,7 @@ for iter in tqdm(range(n_iterations)):  # repeat for randomization
     for bs_idx in range(total_bs):
         # take all UEs associated to bs_idx
         ue_associated = bs_to_ues[bs_idx]
+
         SNR_UEs = SNR_all[bs_idx][ue_associated] # SNR values of UEs associated
         max_v = np.max(SNR_UEs)
         if max_v != -200:
