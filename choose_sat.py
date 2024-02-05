@@ -85,7 +85,7 @@ class ChooseServingSat(object):
             #df_first['aod_1'] = df_first['aoa_1'] -180
             #df_first['zod_1'] = 180-df_first['zoa_1']
             df_first['link state'] = 1
-            df_first['n_path'] = 2
+            df_first['n_path'] = 1
             df_LOS_list.append(df_first)
 
         #df_first_array = np.array(df_first_list)
