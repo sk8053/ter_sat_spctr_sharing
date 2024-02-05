@@ -48,7 +48,7 @@ class ChooseServingSat(object):
         elev_list = np.round(elev_list/10).astype(int)*10
         pl_keys = ['path_loss_%d'%(s+1) for s in range(25)]
         fr_keys=['link state', 'n_path', 'path_loss_1', 'delay_1', 'aoa_1', 'aod_1', 'zoa_1', 'zod_1']
-        fr_keys+=['delay_2','path_loss_2','aoa_2', 'aod_2', 'zoa_2', 'zod_2']
+        #fr_keys+=['delay_2','path_loss_2','aoa_2', 'aod_2', 'zoa_2', 'zod_2']
         df_list = [] # save channel parameters of satellites
         df_LOS_list =[]
         # collect all the channel parameters corresponding to all the satellites
