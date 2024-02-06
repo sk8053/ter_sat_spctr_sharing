@@ -38,7 +38,7 @@ class ChooseServingSat(object):
         :param elev_list: elevation angles corresponding to each satellite
         :param dist_list: distance between an observer and satellites
         :param sat_ind_list: the list of the names of satellites
-        :param obs_ind: the list of indices of satellite
+        :param obs_ind: the index of BS
         :param n_serving_sat: number of satellites serving IoT devices
         :return: the channel parameter set of the best satellites
         """
