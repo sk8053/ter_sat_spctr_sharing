@@ -148,6 +148,7 @@ class InterferenceCaculator(object):
                                                return_elem_gain=True)
 
                 ind_ = out['sect_ind']
+                #print("sector idx: ", ind_)
                 bs_elem_gain = out['bs_elem_gain_dict'][ind_]
                 ue_elem_gain = out['ue_elem_gain_dict'][ind_]
 
@@ -339,10 +340,14 @@ class InterferenceCaculator(object):
                     bs_to_sat_itf.append(sat_itf_H[_idx][sat_idx])
 
                 bs_to_sat_itf = np.array(bs_to_sat_itf).T
+
+                #print(bs_to_sat_itf.shape)
                 N_t, N_sat = bs_to_sat_itf.shape
                 bs_to_sat_itf = np.sqrt(N_t * N_sat) * bs_to_sat_itf / np.linalg.norm(bs_to_sat_itf, ord='fro')
 
                 N_t, N_r = H_serv.shape
+                #theta = np.random.uniform(-np.pi, np.pi, 1)
+                #H_serv = H_serv*np.exp(-1j*theta)
                 H_serv2 = np.sqrt(N_t * N_r) * H_serv / np.linalg.norm(H_serv, ord='fro')
 
                 cov_terr = H_serv2.conj().T.dot(w_r).dot(w_r.conj().T).dot(H_serv2)
@@ -443,21 +448,21 @@ class InterferenceCaculator(object):
 
         return SNR_list, SINR_list, INR_list
 
-    def build_SAT_channel(self, channel_parameters, sat_to_bs = True, bs_index = None, f_c = 12e9-10e6):
+    def build_SAT_channel(self, channel_parameters, downlink = True, bs_index = None, f_c = 12e9-10e6):
         ### this function builds "uplink" MIMO channels for all the possible links between all the BSs and UEs
         # channel_parameters: dictionary including channel parameters in the form of pandas-dataframe: bs_index -> channel parameters
 
         sat_H_list = dict()
-
+        sector_ind_list = dict()
         for _idx in channel_parameters.keys(): # _idx can be index of BS or satellites
 
             chan_param = channel_parameters[_idx]
             # roate antenna array of UE in random direction
             #arr_ue = RotatedArray(self.arr_ue_init, drone=False)
             arr_ue = self.bs_id_to_ue_array[_idx]
-            #print(chan_param['n_path'])
+
             if np.array(np.isnan(chan_param['n_path'])):  # if the link is outage
-                if sat_to_bs is True:
+                if downlink is True:
                     H = np.zeros((self.nant_n_gnb,))  # set up a virtual channel matrix
                 else:
                     H = np.zeros((self.nant_n_ue,))  # set up a virtual channel matrix
@@ -465,22 +470,26 @@ class InterferenceCaculator(object):
                 path_loss = np.array([np.nan])
                 bs_elem_gain = np.array([np.nan])
                 ue_elem_gain = np.array([np.nan])
+                sector_ind_list[_idx] =np.nan
             else:
                 chan = get_channel_from_ray_tracing_data(chan_param)
                 # place a virtual UE or BS in the location of satellite
-                if sat_to_bs is True:
+
+                if downlink is True:
                     out = dir_path_loss_multi_sect(self.arr_gnb, [arr_ue], chan, isdrone=False, disable_ue_elemgain =True, # here ue can be satellite
-                                               return_elem_gain=True, invert = True)
+                                               return_elem_gain=True, invert = False)
                 else:
                     out = dir_path_loss_multi_sect(self.arr_gnb, [arr_ue], chan, isdrone=False, disable_bs_elemgain=True, # here gnb can be satellite
-                                                   return_elem_gain=True)
+                                                   return_elem_gain=True, invert = True)
                 # obtain the associated index of a sector
                 if bs_index != None:
                     sector_ind = self.bs_to_sect_ind_map[bs_index]
                 else:
                     sector_ind = self.bs_to_sect_ind_map[_idx]
-                #print(sector_ind)
-                if sat_to_bs is True:
+
+                sector_ind_list[_idx] = sector_ind
+
+                if downlink is True:
                     _elem_gain = out['bs_elem_gain_dict'][sector_ind]
                 else:
                     _elem_gain = out['ue_elem_gain_dict'][sector_ind]
@@ -491,7 +500,7 @@ class InterferenceCaculator(object):
                 path_gain = 10 ** (-0.05 * path_loss)
 
                 g = path_gain * _elem_gain_lin #* ue_elem_gain_lin
-                if sat_to_bs is True:
+                if downlink is True:
                     _sv = out['bs_sv_dict'][sector_ind]  # spatial signature in optimal sector of BS
                 else:
                     _sv = out['ue_sv_dict'][sector_ind]
@@ -504,7 +513,7 @@ class InterferenceCaculator(object):
 
             sat_H_list[_idx] = H
 
-        return sat_H_list
+        return sat_H_list# , sector_ind_list
 
     def allocate_power_across_antennas(self, w_t, 
                                     tx_power_amplitude_ue_lin = 10**(0.05*23),# 23dBm is maximum Tx power of UE
