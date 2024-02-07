@@ -475,12 +475,8 @@ class InterferenceCaculator(object):
                 chan = get_channel_from_ray_tracing_data(chan_param)
                 # place a virtual UE or BS in the location of satellite
 
-                if downlink is True:
-                    out = dir_path_loss_multi_sect(self.arr_gnb, [arr_ue], chan, isdrone=False, disable_ue_elemgain =True, # here ue can be satellite
-                                               return_elem_gain=True, invert = False)
-                else:
-                    out = dir_path_loss_multi_sect(self.arr_gnb, [arr_ue], chan, isdrone=False, disable_bs_elemgain=True, # here gnb can be satellite
-                                                   return_elem_gain=True, invert = True)
+                out = dir_path_loss_multi_sect(self.arr_gnb, [arr_ue], chan, isdrone=False, disable_ue_elemgain =True, # here ue can be satellite
+                                               return_elem_gain=True)
                 # obtain the associated index of a sector
                 if bs_index != None:
                     sector_ind = self.bs_to_sect_ind_map[bs_index]
