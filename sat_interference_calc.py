@@ -76,9 +76,6 @@ else:
 
 interference_calculator = InterferenceCaculator(dir_=dir_,
                                                 frequency=freq,
-                                                tx_power_gnb=tx_power_gnb,
-                                                tx_power_ue=tx_power_ue,
-                                                BW=BW_ter,
                                                 nant_gnb=nant_gnb)
 
 ####################### do association between BSs and UEs #################################
@@ -88,7 +85,6 @@ SNR_all = np.zeros((total_bs, total_ue))  # shape = (total number of BSs, total 
 rand_azm_total = dict()
 rand_elev_total = dict()
 for bs_idx in range(total_bs):  # for all BSs
-
     f = f'{dir_}/SNR_data_codebookBeamforming/SNR_and_data_%d_outdoor.pickle' % (bs_idx + 1)
     with open(f, 'rb') as handle:
         data = pickle.load(handle)
@@ -96,7 +92,6 @@ for bs_idx in range(total_bs):  # for all BSs
     #random azimuth angle of all UE per BS after association
     rand_azm_total[bs_idx] = data['rand_azm'] # read azimuth angles
     rand_elev_total[bs_idx] = data['rand_elev'] # read elevation angles
-
 
 
 # remove NAN values
@@ -120,7 +115,7 @@ bs_to_ues = {bs_idx:[] for bs_idx in range(len(txy))}
 for i in range(len(txy)):
     txy_i = txy[i]
     dxy = np.linalg.norm(rxy - txy_i[None], axis = 1)
-    I = np.argsort(dxy)[:84] # assume  84 UEs are close to one BS (8496/104)
+    I = np.argsort(dxy)[:100] # assume  84 UEs are close to one BS (8496/104)
     bs_to_ues[i] = I
 # collect dataframe including one BS to all possible UEs
 df_bs_ue_list = dict() # BS idx -> dataframe including all UEs
@@ -176,14 +171,10 @@ for iter in tqdm(range(n_iterations)):  # repeat for randomization
 
 
     # decide the index of interfering UEs or BSs
-    if uplink is True:
-        itf_indices = associated_ue_indices
-    else:
-        itf_indices = itf_bs_indices
 
     for i in tqdm(range(total_observ_time)):
-        _ind_selected = np.random.choice(itf_indices, n_itf, replace=False)  # BS or UE index selected
-        # for each time, the UE or BS can observe several satellites
+        _ind_selected = np.random.choice(itf_bs_indices, n_itf, replace=False)  # interfering active BSs indices selected
+        # for each time, the BS can observe several satellites
         # elevation angles, distances and satellite names corresponding to all the observed satellites
         elev_list = tracked_data[i]['elev_ang'].copy()
         dist_list = tracked_data[i]['dist'].copy()
@@ -205,7 +196,7 @@ for iter in tqdm(range(n_iterations)):  # repeat for randomization
                                                                                   obs_ind=_ind, sat_geo_list=sat_geo)
             # shape of df_list_sat = (number of satellites, )
             # after choosing n-serving satellites, create data structure
-            # (sat_index, ue or bs index) -> dataframe of channel parameters
+            # (sat_index, bs index) -> dataframe of channel parameters
             # sat_elev_list_per_ind[_ind] = best_elevs
             for sat_idx in range(n_serving_sat):
                 channel_params_sat[sat_idx][_ind] = df_list_sat[sat_idx]
@@ -222,42 +213,31 @@ for iter in tqdm(range(n_iterations)):  # repeat for randomization
             interference_calculator.build_MIMO_channels(channel_parameters, associated_pair_dict,
                                                         ue_rand_azm_elev_dict=rand_azm_elev_dict,
                                                         # rotation angle when performing association between UEs and BSs
-                                                        uplink=uplink,
-                                                        beamforming_scheme=beamforming_scheme,
                                                         f_c=f)
 
             for _ind in _ind_selected:  # UE or BS index set
                 if beamforming_scheme =='null_nlos' or beamforming_scheme == 'null_los':
-                    H = interference_calculator.build_SAT_channel(channel_params_BS[_ind],
-                                                              sat_to_bs=(not uplink),
-                                                              bs_index=_ind,
-                                                              f_c = f)  # one bs to several satellites
+                    H = interference_calculator.build_SAT_channel(channel_params_BS[_ind], f_c = f)  # one bs to several satellites
                     sat_itf_H[_ind] = H  # H is dictionary, sat index ->  H
 
             # every time, decide different beamforming vector to null out the side lobs
-            delta_g = interference_calculator.decide_beamforming_vectors(
-                                                                          indices_selected=_ind_selected,
+            delta_g = interference_calculator.decide_beamforming_vectors(indices_selected=_ind_selected,
                                                                           beamforming_scheme=beamforming_scheme,
-                                                                          uplink=uplink,
-                                                                          sat_itf_H=sat_itf_H,
+                                                                          sat_itf_H=sat_itf_H, # dictionary bs_idx->(sector index, sate_index) -> chan
                                                                           lambda_ = lambda_)
 
             _delta_g_list[j] = delta_g
-
-
             __itf_list = []
             for sat_idx in range(n_serving_sat):  # for every satellite
                 # get channels from the chosen satellite to all UEs or BSs
                 # return data shape: ue or bs index-> channel dict
-                oneSat2_channel_list = interference_calculator.build_SAT_channel(channel_params_sat[sat_idx],
-                                                                                 sat_to_bs=(not uplink),
-                                                                                 f_c = f)
+                oneSat2_channel_list = interference_calculator.build_SAT_channel(channel_params_sat[sat_idx], f_c = f)
                 itf = 0
-                for _idx in oneSat2_channel_list.keys():  # _idx can be index of BS or UE
-                    sat_h = oneSat2_channel_list[_idx]  # one channel between one BS or UE and the satellite
-                    tx_beam_forming_vec = interference_calculator.tx_beamforming_vect_set[_idx]  # tx beamforming vector used in one BS
+                for bs_and_sect_idx in oneSat2_channel_list.keys():  # _idx can be index of BS or UE
+                    _, bs_idx = bs_and_sect_idx
+                    sat_h = oneSat2_channel_list[bs_and_sect_idx]  # one channel between one BS or UE and the satellite
+                    tx_beam_forming_vec = interference_calculator.tx_beamforming_vect_set[bs_idx]  # tx beamforming vector used in one BS
                     itf += np.abs(np.array(sat_h).conj().dot(tx_beam_forming_vec)) ** 2
-
                 if np.isscalar(itf):
                     __itf_list.append(itf)
                 else:
@@ -271,7 +251,6 @@ for iter in tqdm(range(n_iterations)):  # repeat for randomization
 
         itf_list += list(_itf_list)
         delta_g_list += list(_delta_g_list)
-
         sat_elev_observed_list += elev_list
 
 inr_list = 10*np.log10(itf_list) + G_T - EK - 10*np.log10(BW) + tx_power_gnb

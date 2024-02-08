@@ -75,15 +75,11 @@ class ChooseServingSat(object):
             else:
                 # scale pathloss value by the given distance
                 other_pl = self.get_other_pathloss(self.obs_lat, self.obs_lon, elev, self.freq, self.p)
-            df_el[pl_keys] += 20 * np.log10(dist / df_el['distance']) + other_pl.value
+            df_el[pl_keys] +=   other_pl.value # 20 * np.log10(dist / df_el['distance']) +
 
             df_list.append(df_el)
-            #elev_phi.append([elev, phi])
             df_first = df_el[fr_keys].copy()
-            #df_first['aoa_1'] = phi
-            #df_first['zoa_1'] = 90-elev
-            #df_first['aod_1'] = df_first['aoa_1'] -180
-            #df_first['zod_1'] = 180-df_first['zoa_1']
+            # only choose the first path
             df_first['link state'] = 1
             df_first['n_path'] = 1
             df_LOS_list.append(df_first)
