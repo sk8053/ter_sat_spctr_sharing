@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Sat Aug 26 12:26:17 2023
-Calculate the interference, SNR, SINR, INR given all the channel paramters
-    - BSs and UEs have pre-defined antenna configuration and build MIMO channels accordingly
-    
-Inputs are channel parameters packed with pandas-dataframe
-Outputs are SNR, SINR, INR, and so on
+
 @author: seongjoon kang
 """
 import numpy as np
