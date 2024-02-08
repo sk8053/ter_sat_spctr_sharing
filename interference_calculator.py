@@ -234,7 +234,7 @@ class InterferenceCaculator(object):
 
                 bs_to_sat_itf = np.array(bs_to_sat_itf).T
 
-                N_t, N_sat_N_sect = bs_to_sat_itf.shape
+                N_t, N_sat_N_sect = bs_to_sat_itf.shape # shape = (N_t, N_sat*N_sect)
                 bs_to_sat_itf = np.sqrt(N_t * N_sat_N_sect) * bs_to_sat_itf / np.linalg.norm(bs_to_sat_itf, ord='fro')
 
                 N_t, N_r = H_serv.shape

@@ -48,7 +48,6 @@ class ChooseServingSat(object):
         elev_list = np.round(elev_list/10).astype(int)*10
         pl_keys = ['path_loss_%d'%(s+1) for s in range(25)]
         fr_keys=['link state', 'n_path', 'path_loss_1', 'delay_1', 'aoa_1', 'aod_1', 'zoa_1', 'zod_1']
-        #fr_keys+=['delay_2','path_loss_2','aoa_2', 'aod_2', 'zoa_2', 'zod_2']
         df_list = [] # save channel parameters of satellites
         df_LOS_list =[]
         # collect all the channel parameters corresponding to all the satellites
@@ -75,8 +74,8 @@ class ChooseServingSat(object):
             else:
                 # scale pathloss value by the given distance
                 other_pl = self.get_other_pathloss(self.obs_lat, self.obs_lon, elev, self.freq, self.p)
-            df_el[pl_keys] +=   other_pl.value # 20 * np.log10(dist / df_el['distance']) +
-
+            # scale pathloss with actual distance from tracked information
+            df_el[pl_keys] +=   20 * np.log10(dist / df_el['distance']) + other_pl.value # other_pl is attenuation by other factors such as atmosphere or scintillation
             df_list.append(df_el)
             df_first = df_el[fr_keys].copy()
             # only choose the first path
@@ -84,20 +83,16 @@ class ChooseServingSat(object):
             df_first['n_path'] = 1
             df_LOS_list.append(df_first)
 
-        #df_first_array = np.array(df_first_list)
-        #I = np.argsort(first_pl_list) # sort first path loss in ascending order
         I = range(len(df_list))
         if n_serving_sat == None:
-            I_best = I
+            I_best = I # choose all the satellites
         else:
-            # choose n-best satellites
-            #I_best = I[:n_bestsat]
             I_best = np.random.choice(I, (n_serving_sat,), replace=False)
 
         best_df_array = [df_list[i] for i in I_best]
         df_LOS_list =[df_LOS_list[i] for i in I_best]
         best_sat_names = np.array(sat_ind_list)[I_best]
-        #best_elevs = elev_list[I_best]
+
         return best_df_array, best_sat_names , df_LOS_list
 
     def get_other_pathloss(self, lat, lon,el, freq = 18e9, p =1):
