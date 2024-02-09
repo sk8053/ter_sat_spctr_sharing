@@ -21,7 +21,7 @@ import pymap3d as pm
 R_E = constants.R_earth.value
 f_c = 12e9
 min_elev = 25
-file_name = 'satTrack_at_Colorado_minElem_60s_interval'
+file_name = 'satTrack_at_Colorado_time_60m_min_elev'
 cur_time = datetime.datetime(2023, 9,3, 8, 10, 20) # 09/03, 2023, 08:10:20
 utc_time  = cur_time.astimezone(timezone.utc) # convert current time to utc time
 print(f'current time: {cur_time} and utc time: {utc_time}')
@@ -56,9 +56,9 @@ file_writer.writerow(['utc_time', 'n_sat', 'sat_ind', 'elev_ang', 'azm_ang', 'di
 
 for j in range(60): # from 0 minutes to 60 minutes, one hour
     #dt = datetime.datetime(utc_time.year, utc_time.month, utc_time.day, utc_time.hour, utc_time.minute, utc_time.second)  #
-    utc_time = utc_time + timedelta(seconds=60*j)
+    utc_time = utc_time + timedelta(seconds=60)
     #obstime = time.Time(dt)
-    print(f'time index:{j}, obs time {time.Time(utc_time)}')
+    print(f'time index:{j}, observed utc time {time.Time(utc_time)}')
     for key in tqdm(tle_dict.keys()):
         tle_string = tle_dict[key]
         satname, sat = satellite.get_sat(tle_string)
@@ -116,6 +116,6 @@ for j in range(60): # from 0 minutes to 60 minutes, one hour
 
 ff.close()
 
-with open(f'{file_name}_{min_elev}.pickle', 'wb') as handle:
+with open(f'data/{file_name}_{min_elev}.pickle', 'wb') as handle:
     pickle.dump(data_to_save, handle)
 
