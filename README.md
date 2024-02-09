@@ -31,15 +31,15 @@ There are several options to change simulation parameters. <br />
 ```
 python3 sat_interference_calc.py --lambda_ 1 --bf SVD --n_iter 10 --total_observ_time 60
 ```
-- lambda_: regularization parameters to control interference nulling. This value corresponds to &lambda; in the paper. <br />
+- **lambda_**: regularization parameters to control interference nulling. This value corresponds to &lambda; in the paper. <br />
   In the paper, we used &lambda; = 1, 10. <br />
-- bf: beamforming scheme. There are three options: null_los, null_nlos, and SVD. <br />
+- **bf**: beamforming scheme. There are three options: null_los, null_nlos, and SVD. <br />
       null_los: beamforming by creating nulls on LOS paths only.<br />
       null_nlos: beamforming by creating nulls on all the paths. <br />
       SVD: Singular Value Decomposition based beamforming, which doesn't consider interference nulling. <br />
-- n_iter: number of iterations to choose different active BSs at random, which simultaneously transmit data to the best UE.
-- total_observ_time: total observation time (minutes) of satellites by Earth station in the given region. The maximum value is 60 minutes.
-- n_itf: number of BSs transmitting data concurrently. We set it as 21 in the paper, 20% of total BSs deployed. 
+- **n_iter**: number of iterations to choose different active BSs at random, which simultaneously transmit data to the best UE.
+- **total_observ_time**: total observation time (minutes) of satellites by Earth station in the given region. The maximum value is 60 minutes.
+- **n_itf**: number of BSs transmitting data concurrently. We set it as 21 in the paper, 20% of total BSs deployed. 
 
  All the simulation results are saved in the directory **data/**
       
