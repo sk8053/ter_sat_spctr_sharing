@@ -40,5 +40,5 @@ python3 sat_interference_calc.py --lambda_ 1 --bf SVD --n_iter 10 --total_observ
 - n_iter: number of iterations to choose different active BSs, which simultaneously transmit data to the best UE.
 - total_observ_time: total observation time (minutes) of satellites by Earth station in the given region. The maximum value is 60 minutes.
 
- All the results are saved in the directory **data/**
+ All the simulation results are saved in the directory **data/**
       
