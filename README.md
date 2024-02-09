@@ -18,8 +18,12 @@ python3 track_satellites.py
 ```
 If you want to change the time, change the variable, **cur_time** in the code. Default time is set as 08:10:20 09/03, 2023.<br />
 Also, for different satellite constellations, you can download a different TLE file from [Celestrack](https://celestrak.org/). <br />
-Now **Starlink** TLE file **starlink.tle** downloaded in the September 2023 is in use. <br />
+Now **Starlink** TLE file, **starlink.tle** downloaded in the September 2023, is in use. <br />
 
 ## Calculation of Interferences to Satellites
-
+Interference nulling scheme suggested in our paper can be evaluated by running **sat_interference_calc.py**.<br />
+There are several options to change simulation parameters. <br />
+```
+python3 sat_interference_calc.py --lambda_ 1 --bf SVD --n_iter 10 --total_observ_time 60
+```
 
