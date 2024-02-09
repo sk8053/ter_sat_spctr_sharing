@@ -7,7 +7,7 @@ SNR values of each BS are saved in SNR_data_codebookBeamforming
 @author: seongjoon kang
 """
 import numpy as np
-import glob
+#import glob
 import pandas as pd
 from tqdm import tqdm
 import sys
@@ -17,11 +17,11 @@ from src.mmwchanmod.sim.get_channel_from_ray_tracing_data import get_channel_fro
 from src.mmwchanmod.sim.array import URA, RotatedArray, multi_sect_array
 from src.mmwchanmod.sim.antenna import Elem3GPP
 from src.mmwchanmod.common.constants import PhyConst
-from src.mmwchanmod.common.spherical import cart_to_sph
+#from src.mmwchanmod.common.spherical import cart_to_sph
 #from src.mmwchanmod.sim.drone_antenna_field import drone_antenna_gain
 from src.mmwchanmod.sim.chanmod import dir_path_loss_multi_sect
-import matplotlib.pyplot as plt
-import gzip
+#import matplotlib.pyplot as plt
+#import gzip
 import pickle
 if 0:
     r_azm = np.random.uniform(low = -180, high = 180, size= (200, 10000))
@@ -34,7 +34,7 @@ rand_azm_factory = np.loadtxt('rural_12GHz/random_azm_angles.txt')
 rand_elev_factory = np.loadtxt('rural_12GHz/random_elev_angles.txt')
 
 in_out = 'outdoor'
-for frequency in [12e9]: #12e9,  24e9
+for frequency in [12e9]: #12e9,
     if frequency == 6e9:##
         nant_ue = np.array([1,2])
         nant_gnb = np.array([2,2])
@@ -43,7 +43,7 @@ for frequency in [12e9]: #12e9,  24e9
         file_name1 = 'ue_codebook_6GHz.txt'
         file_name2 = 'bs_codebook_6GHz_rural.txt'
         
-        dir_ = 'rural_scenario_Remcomm_6GHz/'
+        dir_ = 'rural_6GHz/'
         
     
     elif frequency ==12e9: ##
@@ -64,7 +64,7 @@ for frequency in [12e9]: #12e9,  24e9
         file_name1 = 'ue_codebook_18GHz.txt'
         file_name2 = 'bs_codebook_18GHz_rural.txt'
         
-        dir_= 'rural_scenario_Remcomm_18GHz/'
+        dir_= 'rural_18GHz/'
         
     elif frequency == 24e9: #
         nant_ue = np.array([1,3])
@@ -74,7 +74,7 @@ for frequency in [12e9]: #12e9,  24e9
         file_name1 = 'ue_codebook_24GHz.txt'
         file_name2 = 'bs_codebook_24GHz_rural.txt'
         
-        dir_= 'rural_scenario_Remcomm_24GHz/'
+        dir_= 'rural_24GHz/'
         
     else:
         ValueError(f"Unknown frequency{frequency} GHz")
