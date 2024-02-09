@@ -51,7 +51,7 @@ We used the [wireless Insite](https://www.remcom.com/wireless-insite-em-propagat
    For example, **sat_inclination_10_phi_120.csv** means that the satellite is located at 10 &deg; inclination angle and 120 &deg; horizontal angle. <br />
 - In **rural_12GHz/parsed_data_sat_to_bs**: each csv file in this directory includes all the channel paramters between one BS and all the UEs <br />
   There are 104 BSs deployed, so the corresponding 104 csv files exist.
-- The main material for ray-tracing simulation is ground. We used **wet Earth** material setting the following parameters. <br />
+- The main material for ray-tracing simulation is **ground**. We used **Wet Earth**, setting the following parameters. <br />
 
 | Parameter  | Value |
 | ------------- | ------- |
