@@ -1,27 +1,29 @@
 import numpy as np
 import pandas as pd
-import glob
 import itur
 
 class ChooseServingSat(object):
+    # this class create channels between BSs and satellites
+    # compute other attenuation using itur package
 
     def __init__(self, obs_lat, obs_lon, p, freq = 18e9, dir_:str= 'parsed_data_sat_to_bs'):
+
         self.obs_lat =obs_lat
         self.obs_lon = obs_lon
         self.p = p #values exceeded during p % of the average
         self.freq = freq  # carrier frequency
-        # read csv files for one observer
+        # read all the csv files between an observer and satellites
         self.elev_to_df = {e:dict() for e in [10,20,30,40,50,60,70,80,90]}
         for elev in [10,20,30,40,50,60,70,80,90]:
             incl_ang = 90 - elev
             if incl_ang != 0:
                 for phi in [0,60,120,180,240, 300]:
-                    file_name = f'rural_{int(freq/1e9)}GHz/{dir_}/sat_inclination_{incl_ang}_phi_{phi}.csv'
-                    # each elevation angle can map to several azimuth angles
+                    file_name = f'{dir_}/sat_inclination_{incl_ang}_phi_{phi}.csv'
+                    # each elevation angle can be mapped to several azimuth angles
                     self.elev_to_df[elev][phi] = pd.read_csv(file_name)
             else:
-                file_name = f'rural_{int(freq/1e9)}GHz/{dir_}/sat_inclination_{incl_ang}_phi_0.csv'
-                # each elevation angle can map to several azimuth angles
+                file_name = f'{dir_}/sat_inclination_{incl_ang}_phi_0.csv'
+                # each elevation angle can be mapped to several azimuth angles
                 self.elev_to_df[elev][0] = pd.read_csv(file_name)
 
         #sample geodetic locations directed to the azimuth angles
@@ -49,7 +51,7 @@ class ChooseServingSat(object):
         pl_keys = ['path_loss_%d'%(s+1) for s in range(25)]
         fr_keys=['link state', 'n_path', 'path_loss_1', 'delay_1', 'aoa_1', 'aod_1', 'zoa_1', 'zod_1']
         df_list = [] # save channel parameters of satellites
-        df_LOS_list =[]
+        df_LOS_list =[] # save only LOS channel parameters
         # collect all the channel parameters corresponding to all the satellites
         for k, (elev, dist) in enumerate(zip(elev_list, dist_list)):
 
@@ -74,13 +76,15 @@ class ChooseServingSat(object):
             else:
                 # scale pathloss value by the given distance
                 other_pl = self.get_other_pathloss(self.obs_lat, self.obs_lon, elev, self.freq, self.p)
+
             # scale pathloss with actual distance from tracked information
-            df_el[pl_keys] +=   20 * np.log10(dist / df_el['distance']) + other_pl.value # other_pl is attenuation by other factors such as atmosphere or scintillation
+            # other_pl is attenuation by other factors such as atmosphere or scintillation
+            df_el[pl_keys] +=   20 * np.log10(dist / df_el['distance']) + other_pl.value
             df_list.append(df_el)
             df_first = df_el[fr_keys].copy()
             # only choose the first path
             df_first['link state'] = 1
-            df_first['n_path'] = 1
+            df_first['n_path'] = 1 # take only LOS path
             df_LOS_list.append(df_first)
 
         I = range(len(df_list))
@@ -96,6 +100,7 @@ class ChooseServingSat(object):
         return best_df_array, best_sat_names , df_LOS_list
 
     def get_other_pathloss(self, lat, lon,el, freq = 18e9, p =1):
+        ## other pathloss values such as atmospheric or scintillation attenuations
 
         # Location of the receiver ground stations
         #lat = 41.39

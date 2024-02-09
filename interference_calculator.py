@@ -73,14 +73,12 @@ class InterferenceCaculator(object):
         # associated_pair_dict: a dictionary of all the associated pairs between BSs and UEs
             # bs_index-> associated ue_index
         # ue_rand_azm_elev_dict : angles of UEs when they do associate with BSs, we should keep these angles to reduce other randomness
-        # enable_calc_interference_channels: compute intereference channels between BSs and other interfering UEs
+        # enable_calc_interference_channels: compute interference channels between BSs and other interfering UEs
 
         # associated channel dictionary corresponding to each UE
         associated_H = dict() # ue_idx -> H
         # a list of interfering channel dictonary corresponding to each UE
 
-        #associated_pair_dict_reversed = dict()
-        
         # build associated channels first
         self.bs_to_sect_ind_map = dict()
 
@@ -256,7 +254,7 @@ class InterferenceCaculator(object):
             g_old = abs(w_r.conj().T.dot(H_serv).dot(w_t_svd))**2
             g, g_old = np.squeeze(g), np.squeeze(g_old)
 
-            _delta_g = float(g_old/g)
+            _delta_g = float(g_old/g) # gain loss in linear scale
 
             delta_g_list.append(_delta_g)
 
@@ -268,10 +266,9 @@ class InterferenceCaculator(object):
 
 
     def build_SAT_channel(self, channel_parameters, f_c = 12e9-10e6):
-        ### this function builds "uplink" MIMO channels for all the possible links between all the BSs and UEs
+        ### this function builds "uplink" MIMO channels for all the possible links between all the BSs and satellites
         # channel_parameters: dictionary including channel parameters in the form of pandas-dataframe: bs_index -> channel parameters
         sat_H_list = dict()
-
         for _idx in channel_parameters.keys(): # _idx can be index of BS or satellites
             chan_param = channel_parameters[_idx]
             # roate antenna array of UE in random direction
@@ -284,13 +281,12 @@ class InterferenceCaculator(object):
                 path_loss = np.array([np.nan])
                 bs_elem_gain = np.array([np.nan])
                 ue_elem_gain = np.array([np.nan])
-                #sector_ind_list[_idx] =np.nan
                 for sector_ind in range(3):
                     sat_H_list[(sector_ind, _idx)] = H  # sector index, satellite index or BS index
             else:
                 chan = get_channel_from_ray_tracing_data(chan_param)
 
-                # place a virtual UE or BS in the location of satellite
+                # place a virtual UE  in the location of satellite
                 # use channel data from sat to bs from ray-tracing resuls: sat -> BS
                 # place a virtual UE in the position of satellite by switching angles: and consider transmission: BS->sat with invert = True
                 out = dir_path_loss_multi_sect(self.arr_gnb, [arr_ue], chan, isdrone=False, disable_ue_elemgain =True, # here ue can be satellite
