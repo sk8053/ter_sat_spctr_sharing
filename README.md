@@ -45,9 +45,11 @@ python3 sat_interference_calc.py --lambda_ 1 --bf SVD --n_iter 10 --total_observ
 
 ## Ray-tracing Data
 The ray-tracing data to model channels is located in the directory **rural_12GHz/**. <br />
-- In **rural_12GHz/parsed_data_sat_to_bs**: each csv file in this directory includes all the channel paramters to all the BSs deployed. <br />
+- In **rural_12GHz/parsed_data_sat_to_bs**: each csv file in this directory includes all the channel paramters from one satellite to all the BSs deployed. <br />
   The file names show the locations of satellites <br />
    For example, **sat_inclination_10_phi_120.csv** means that the satellite is located at 10 &deg; inclination angle and 120 &deg; horizontal angle. <br />
+- In **rural_12GHz/parsed_data_sat_to_bs**: each csv file in this directory includes all the channel paramters between one BS and all the UEs <br />
+  There are 104 BSs deployed, so the corresponding 104 csv files exist.
 
 
 
