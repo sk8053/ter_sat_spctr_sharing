@@ -16,3 +16,7 @@ In order to track the location of satellites in the given time, run the file, **
 If you want to change the time, change the variable, **cur_time** in the code. Default time is set as 08:10:20 09/03, 2023.<br />
 Also, for different satellite constellations, you can download a different TLE file from [Celestrack](https://celestrak.org/). <br />
 Now **Starlink** TLE file **starlink.tle** downloaded in the September 2023 is in use. <br />
+
+## Calculation of Interferences to Satellites
+
+
