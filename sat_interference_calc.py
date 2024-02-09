@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 plt.rcParams["font.family"] = "Times New Roman"
 import pickle
 import pandas as pd
-from choose_sat import ChooseServingSat
+from src.sat_iterference.choose_sat import ChooseServingSat
 from tqdm import tqdm
-from interference_calculator import InterferenceCaculator#, #min_dist_check
+from src.sat_iterference.interference_calculator import InterferenceCaculator#, #min_dist_check
 import argparse
 import random
 
@@ -18,7 +18,7 @@ parser.add_argument('--n_itf', action='store', default=21, type=int, help='total
 parser.add_argument('--n_iter', action='store', default=10, type=int, help='total number of iteration for randomization')
 parser.add_argument('--bf', action='store', default='null_nlos', type=str, help='beamforming scheme')
 parser.add_argument('--n_ant', action = 'store', default=8, type = int, help = 'number of Tx antennas')
-parser.add_argument('--lambda_', action = 'store', default=1e3, type = float, help= 'regularization parameters to control interference nulling')
+parser.add_argument('--lambda_', action = 'store', default=1e2, type = float, help= 'regularization parameters to control interference nulling')
 
 min_elev = 25  # minimum elevation angle to observe satellites
 print(f'minimum elevation angle is {min_elev}')
@@ -36,7 +36,7 @@ dir_ = f'rural_{int(freq / 1e9)}GHz' # directory having all the data files
 dir_bs_to_ue = f'{dir_}/parsed_data_bs_to_ue' # data frames files between BSs and UEs
 dir_sat_to_bs = f'{dir_}/parsed_data_sat_to_bs' # data frames files between satellites and BSs
 # file name including all the tracking information during 60 seconds from 09/03, 2023, 08:10:20
-sat_track_file_name = f'data/satTrack_at_Colorado_minElem_60s_interval_{min_elev}.pickle'
+sat_track_file_name = f'data/satTrack_at_Colorado_time_60m_min_elev_{min_elev}.pickle'
 
 args = parser.parse_args()
 n_itf = args.n_itf
