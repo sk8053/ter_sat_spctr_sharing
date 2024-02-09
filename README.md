@@ -28,7 +28,7 @@ python3 sat_interference_calc.py --lambda_ 1 --bf SVD --n_iter 10 --total_observ
 ```
 - lambda_: regularization parameters to control interference nulling. This value corresponds to &lambda in the paper.
   In the paper, we used &lambda = 1, 10.
-- bf: beamforming scheme. There are three options: null_los, null_nlos, and SVD. <bf />
-      null_los: beamforming by creating nulls on LOS paths only.<bf />
-      null_nlos: beamforming by creating nulls on all the paths. <bf />
+- bf: beamforming scheme. There are three options: null_los, null_nlos, and SVD. <br />
+      null_los: beamforming by creating nulls on LOS paths only.<br />
+      null_nlos: beamforming by creating nulls on all the paths. <br />
       
