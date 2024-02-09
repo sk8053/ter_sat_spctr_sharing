@@ -42,4 +42,8 @@ python3 sat_interference_calc.py --lambda_ 1 --bf SVD --n_iter 10 --total_observ
 - **n_itf**: number of BSs transmitting data concurrently. We set it as 21 in the paper, 20% of total BSs deployed. 
 
  All the simulation results are saved in the directory **data/**
-      
+
+## Ray-tracing Data
+
+The ray-tracing data to model channels is located in the directory **data/**
+- 
