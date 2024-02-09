@@ -17,7 +17,7 @@ In order to track the location of satellites in the given time, run the file, **
 python3 track_satellites.py
 ```
 After finshing running it, all the tracking information is saved in directory, **data/** <br />
-For example, when observing satellite during 60 minutes with 25 degree minimum elevation angle, the **track_satellites.py** generates the following pickle file in **data/** <br />
+For example, when observing satellite during 60 minutes with 25 &deg; minimum elevation angle, the **track_satellites.py** generates the following pickle file in **data/** <br />
 ```
 satTrack_at_Colorado_time_60m_min_elev_25.pickle
 ```
@@ -44,6 +44,8 @@ python3 sat_interference_calc.py --lambda_ 1 --bf SVD --n_iter 10 --total_observ
  All the simulation results are saved in the directory **data/**
 
 ## Ray-tracing Data
+The ray-tracing data to model channels is located in the directory **rural_12GHz/**. <br />
+**rural_12GHz/parsed_data_sat_to_bs**: each csv file in this directory includes all the channel paramters to all the BSs deployed. <br />
+The file names show the locations of satellites <br />
+For example, **sat_inclination_10_phi_120.csv** show that the satellite is located at 10 &deg; inclination angle and 120 &deg; horizontal angle. 
 
-The ray-tracing data to model channels is located in the directory **data/**
-- 
