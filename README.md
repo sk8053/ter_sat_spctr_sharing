@@ -26,4 +26,4 @@ There are several options to change simulation parameters. <br />
 ```
 python3 sat_interference_calc.py --lambda_ 1 --bf SVD --n_iter 10 --total_observ_time 60
 ```
-
+- lambda_: regularization parameters to control interference nulling. Thie value corresponds to &lambda in the paper. 
