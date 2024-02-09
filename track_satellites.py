@@ -50,7 +50,7 @@ for j in range(60):
     for feature_key in ['utc_time', 'sat_ind', 'elev_ang', 'azm_ang', 'dist','pos','pos_geo', 'vel', 'doppler_shift']:
         data_to_save[j][feature_key] =[]
 
-ff = open(f'{file_name}_{min_elev}.csv','wt',encoding='utf-8', newline="")
+ff = open(f'data/{file_name}_{min_elev}.csv','wt',encoding='utf-8', newline="")
 file_writer = csv.writer(ff)
 file_writer.writerow(['utc_time', 'n_sat', 'sat_ind', 'elev_ang', 'azm_ang', 'dist','pos','pos_geo', 'vel', 'doppler_shift'])
 
