@@ -12,7 +12,7 @@ from src.mmwchanmod.sim.get_channel_from_ray_tracing_data import get_channel_fro
 from src.mmwchanmod.sim.array import URA, RotatedArray, multi_sect_array
 from src.mmwchanmod.sim.antenna import Elem3GPP
 from src.mmwchanmod.sim.chanmod import dir_path_loss_multi_sect
-import pickle
+#import pickle
 import copy
 
 
@@ -232,9 +232,11 @@ class InterferenceCaculator(object):
 
                 bs_to_sat_itf = np.array(bs_to_sat_itf).T
 
+                # normalize the interference channel matrix
                 N_t, N_sat_N_sect = bs_to_sat_itf.shape # shape = (N_t, N_sat*N_sect)
                 bs_to_sat_itf = np.sqrt(N_t * N_sat_N_sect) * bs_to_sat_itf / np.linalg.norm(bs_to_sat_itf, ord='fro')
 
+                # normalize the terrestrial channel matrix
                 N_t, N_r = H_serv.shape
                 H_serv2 = np.sqrt(N_t * N_r) * H_serv / np.linalg.norm(H_serv, ord='fro')
 
@@ -248,6 +250,8 @@ class InterferenceCaculator(object):
                 v_nulls = v_nulls[:, I]
                 v_null = v_nulls[:, 0]
                 w_t = v_null
+            else:
+                ValueError(f'unknown beamforming scheme {beamforming_scheme}')
 
 
             g = abs(w_r.conj().T.dot(H_serv).dot(w_t))**2

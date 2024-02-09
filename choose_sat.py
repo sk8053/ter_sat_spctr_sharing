@@ -27,7 +27,7 @@ class ChooseServingSat(object):
                 self.elev_to_df[elev][0] = pd.read_csv(file_name)
 
         #sample geodetic locations directed to the azimuth angles
-        self.azimuth_to_LatLon =np.array( [[ 40.071024883264556,-104.692390260897568], #phi = 0
+        self.azimuth_to_LatLon =np.array( [[ 40.071024883264556,-104.692390260897568], #phi = 0 # estimating the direction of phi=0
                                            [ 40.384950998480129,-104.914360373175015], # phi = 60
                                             [ 40.398901262320805,-105.398720678060158], # phi = 120
                                            [40.066413452242159, -105.624391573035723], # phi = 180

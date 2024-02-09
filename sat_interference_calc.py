@@ -31,7 +31,6 @@ f_c_list = freq + np.linspace(-BW/2, BW/2, 5) # possible subcarriers (it can be 
 
 
 BW_ter = 200e6  # bandwidth for terrestrial transmission
-SNR_threshold = 5 # in dB, SNR threshold for UEs to perform association with BSs
 total_bs = 104  # total number of BSs
 total_ue = 8496  # total number of UEs #13696
 dir_ = f'rural_{int(freq / 1e9)}GHz' # directory having all the data files
@@ -120,7 +119,7 @@ delta_g_list = [] # gain loss
 sat_elev_observed_list = [] # elevation angles observed
 
 # repeat for randomization
-# every iteration, BSs have different associated UEs
+# every iteration, we choose different active BSs causing interferences to satellites
 for iter in tqdm(range(n_iterations)):
     associated_ue_indices = [] # associated UEs for each iteration
     # if the associated UEs are selected,
@@ -137,9 +136,8 @@ for iter in tqdm(range(n_iterations)):
         max_v = np.max(SNR_UEs)
         if max_v != -200: # if maximum SNR link is not outage
             all_bs_indices.append(bs_idx)  # interfering BS index
-            snr_s_selected = np.flip(np.sort(SNR_UEs))
-            # choose SNR values which are more than the threshold value
-            snr_s_selected = snr_s_selected[snr_s_selected>=SNR_threshold]
+            # as the worst case, we assume that each BS serve UEs having maximum SNR
+            snr_s_selected = [max_v] #np.flip(np.sort(SNR_UEs))[:1]
             # choose a SNR value at random from possible SNRs
             max_v_new = np.random.choice(snr_s_selected, 1)
             # choose UE corresponding to random SNR value chosen
