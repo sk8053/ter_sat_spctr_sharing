@@ -39,7 +39,7 @@ python3 sat_interference_calc.py --lambda_ 1 --bf SVD --n_iter 10 --total_observ
       SVD: Singular Value Decomposition based beamforming, which doesn't consider interference nulling. <br />
 - n_iter: number of iterations to choose different active BSs at random, which simultaneously transmit data to the best UE.
 - total_observ_time: total observation time (minutes) of satellites by Earth station in the given region. The maximum value is 60 minutes.
-- n_itf: number of BSs transmitting data concurrently. We set it as 21, 20% of total BS. 
+- n_itf: number of BSs transmitting data concurrently. We set it as 21 in the paper, 20% of total BSs deployed. 
 
  All the simulation results are saved in the directory **data/**
       
