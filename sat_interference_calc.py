@@ -13,13 +13,12 @@ import random
 
 random.seed(100)
 parser = argparse.ArgumentParser(description='')
-parser.add_argument('--is_save', dest='is_save', action='store_true', help='save or not')
 parser.add_argument('--total_observ_time', action='store', default=60, type=int, help=' total observation time')
 parser.add_argument('--n_itf', action='store', default=21, type=int, help='total number of concurrent transmissions')
 parser.add_argument('--n_iter', action='store', default=10, type=int, help='total number of iteration for randomization')
 parser.add_argument('--bf', action='store', default='null_nlos', type=str, help='beamforming scheme')
-parser.add_argument('--n_ant', action = 'store', default=8, type = int)
-parser.add_argument('--lambda_', action = 'store', default=1e3, type = float)
+parser.add_argument('--n_ant', action = 'store', default=8, type = int, help = 'number of Tx antennas')
+parser.add_argument('--lambda_', action = 'store', default=1e3, type = float, help= 'regularization parameters to control interference nulling')
 
 min_elev = 25  # minimum elevation angle to observe satellites
 print(f'minimum elevation angle is {min_elev}')
