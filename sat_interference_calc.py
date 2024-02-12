@@ -28,9 +28,13 @@ G_T = 13 # satellite gain-to-noise-temperature ratio
 BW = 30e6  # 30MHz ,38.821 Table 6.1.1.1-5, Maximum bandwidth for up and downlink
 f_c_list = freq + np.linspace(-BW/2, BW/2, 5) # possible subcarriers (it can be larger than 5)
 
-BW_ter = 200e6  # bandwidth for terrestrial transmission
 total_bs = 104  # total number of BSs
 total_ue = 8496  # total number of UEs #13696
+# 1% of probability to generate some attenuation
+# such as attenuation effects from atmospheric conditions, rain, clouds, and scintillation
+p = 1
+tx_power_gnb = 33 #[dBm]
+
 dir_ = f'rural_{int(freq / 1e9)}GHz' # directory having all the data files
 dir_bs_to_ue = f'{dir_}/parsed_data_bs_to_ue' # data frames files between BSs and UEs
 dir_sat_to_bs = f'{dir_}/parsed_data_sat_to_bs' # data frames files between satellites and BSs
@@ -45,6 +49,8 @@ beamforming_scheme = args.bf
 n_ant = args.n_ant
 nant_gnb = np.array([n_ant,n_ant])
 lambda_ = args.lambda_
+
+
 print('---------------- parameter settings -------------')
 print(f'carrier frequency is {freq}')
 print(f'minimum elevation angle is {min_elev}')
@@ -55,7 +61,7 @@ print(f'beamforming scheme: {beamforming_scheme} and URA:{nant_gnb}')
 print(f'lambda: {lambda_}')
 print(f'number of iteration for randomization: {n_iterations}')
 
-tx_power_gnb = 33 #[dBm]
+
 interference_calculator = InterferenceCaculator(dir_=dir_, frequency=freq, nant_gnb=nant_gnb)
 
 ####################### do association between BSs and UEs #################################
@@ -80,9 +86,7 @@ for bs_idx in range(total_bs):
 # remove NAN values
 SNR_all[np.isnan(SNR_all)] = -200
 
-# 1% of probability to generate some attenuation
-# such as attenuation effects from atmospheric conditions, rain, clouds, and scintillation
-p = 1
+
 
 # location of observer
 obs_lon, obs_lat = -105.018174370992298, 40.139045580580948
