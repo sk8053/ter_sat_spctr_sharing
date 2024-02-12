@@ -51,7 +51,7 @@ nant_gnb = np.array([n_ant,n_ant])
 lambda_ = args.lambda_
 
 
-print('---------------- parameter settings -------------')
+print('---------------- Parameter Settings -------------')
 print(f'carrier frequency is {freq}')
 print(f'minimum elevation angle is {min_elev}')
 print('downlink transmission')
@@ -115,7 +115,7 @@ for i in range(len(txy)):
 df_bs_ue_list = dict() # BS idx -> dataframe including all UEs
 print( '----------------------------------------------------------------------------')
 print('============= Read channel parameters between the deployed BSs and UEs =========')
-for bs_ind in tqdm(range(total_bs), desc='n_bs', ascii=True):
+for bs_ind in tqdm(range(total_bs), desc='number of BSs', ascii=True):
     df = pd.read_csv(f'{dir_bs_to_ue}/bs_{bs_ind + 1}.csv', engine='python')
     df_bs_ue_list[bs_ind] = df
 
@@ -125,7 +125,7 @@ sat_elev_observed_list = [] # elevation angles observed
 
 # repeat for randomization
 # every iteration, we choose different active BSs causing interferences to satellites
-for iter in tqdm(range(n_iterations), desc= 'n_iterations', ascii=True):
+for iter in tqdm(range(n_iterations), desc= 'number of iterations', ascii=True):
     associated_ue_indices = [] # associated UEs for each iteration
     # if the associated UEs are selected,
     # we should choose the corresponding rotations between UEs and BSs
