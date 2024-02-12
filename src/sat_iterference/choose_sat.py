@@ -14,6 +14,8 @@ class ChooseServingSat(object):
         self.freq = freq  # carrier frequency
         # read all the csv files between an observer and satellites
         self.elev_to_df = {e:dict() for e in [10,20,30,40,50,60,70,80,90]}
+        print('----------------------------------------------------------------------------')
+        print('============= Read channel parameters between the deployed Satellites and BSs =========')
         for elev in [10,20,30,40,50,60,70,80,90]:
             incl_ang = 90 - elev
             if incl_ang != 0:

@@ -21,13 +21,12 @@ parser.add_argument('--n_ant', action = 'store', default=8, type = int, help = '
 parser.add_argument('--lambda_', action = 'store', default=1e2, type = float, help= 'regularization parameters to control interference nulling')
 
 min_elev = 25  # minimum elevation angle to observe satellites
-print(f'minimum elevation angle is {min_elev}')
+
 freq = 12e9 # carrier frequency in downlink transmission
 EK = -198.6  # [dBm/Hz] # pow2db(physconst('Boltzmann'))+30
 G_T = 13 # satellite gain-to-noise-temperature ratio
 BW = 30e6  # 30MHz ,38.821 Table 6.1.1.1-5, Maximum bandwidth for up and downlink
 f_c_list = freq + np.linspace(-BW/2, BW/2, 5) # possible subcarriers (it can be larger than 5)
-
 
 BW_ter = 200e6  # bandwidth for terrestrial transmission
 total_bs = 104  # total number of BSs
@@ -46,14 +45,15 @@ beamforming_scheme = args.bf
 n_ant = args.n_ant
 nant_gnb = np.array([n_ant,n_ant])
 lambda_ = args.lambda_
-
+print('---------------- parameter settings -------------')
 print(f'carrier frequency is {freq}')
+print(f'minimum elevation angle is {min_elev}')
 print('downlink transmission')
 print(f'number of interfering UE or BS: {n_itf}')
 print(f'total observation time: {total_observ_time}')
 print(f'beamforming scheme: {beamforming_scheme} and URA:{nant_gnb}')
 print(f'lambda: {lambda_}')
-
+print(f'number of iteration for randomization: {n_iterations}')
 
 tx_power_gnb = 33 #[dBm]
 interference_calculator = InterferenceCaculator(dir_=dir_, frequency=freq, nant_gnb=nant_gnb)
@@ -109,7 +109,9 @@ for i in range(len(txy)):
 
 # collect dataframe per BS for all possible UEs
 df_bs_ue_list = dict() # BS idx -> dataframe including all UEs
-for bs_ind in tqdm(range(total_bs)):
+print( '----------------------------------------------------------------------------')
+print('============= Read channel parameters between the deployed BSs and UEs =========')
+for bs_ind in tqdm(range(total_bs), desc='n_bs', ascii=True):
     df = pd.read_csv(f'{dir_bs_to_ue}/bs_{bs_ind + 1}.csv', engine='python')
     df_bs_ue_list[bs_ind] = df
 
@@ -119,7 +121,7 @@ sat_elev_observed_list = [] # elevation angles observed
 
 # repeat for randomization
 # every iteration, we choose different active BSs causing interferences to satellites
-for iter in tqdm(range(n_iterations)):
+for iter in tqdm(range(n_iterations), desc= 'n_iterations', ascii=True):
     associated_ue_indices = [] # associated UEs for each iteration
     # if the associated UEs are selected,
     # we should choose the corresponding rotations between UEs and BSs
@@ -154,7 +156,7 @@ for iter in tqdm(range(n_iterations)):
     # associated pair between UE and BS
     associated_pair_dict = {bs_idx: ue_idx for bs_idx, ue_idx in zip(all_bs_indices, associated_ue_indices)}
 
-    for i in tqdm(range(total_observ_time)):
+    for i in tqdm(range(total_observ_time), desc='total observation time', ascii=True):
         itf_bs_ind_active = np.random.choice(all_bs_indices, n_itf, replace=False)  # interfering active BSs indices selected
         # for each time, the BS can observe several satellites
         # elevation angles, distances and satellite names corresponding to all the observed satellites
