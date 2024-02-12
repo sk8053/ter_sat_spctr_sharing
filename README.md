@@ -21,6 +21,7 @@ For example, when observing satellite during 60 minutes with 25 &deg; minimum el
 ```
 satTrack_at_Colorado_time_60m_min_elev_25.pickle
 ```
+You can change the observation time and minimum elevation angle in the file, the **track_satellites.py**. <br />
 If you want to change the time, change the variable, **cur_time** in the code. Default time is set as 08:10:20 09/03, 2023.<br />
 Also, for different satellite constellations, you can download a different TLE file from [Celestrack](https://celestrak.org/). <br />
 Now **Starlink** TLE file, **starlink.tle** downloaded in the September 2023, is in use. <br />
