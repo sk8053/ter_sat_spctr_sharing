@@ -59,6 +59,8 @@ We used the [wireless Insite](https://www.remcom.com/wireless-insite-em-propagat
 | Thickness  | 9mm |
 | Roughness  | 2cm |
 |Conductivity | 3.5 S/m|
-|Permittvity | 10.5|      ![rural_map (6)](https://github.com/sk8053/ter_sat_spctr_sharing/assets/59175938/13b72c90-9833-492b-b5d0-a397b25a3232)
+|Permittvity | 10.5|      
+
+![rural_map (6)](https://github.com/sk8053/ter_sat_spctr_sharing/assets/59175938/13b72c90-9833-492b-b5d0-a397b25a3232)
 
 
