@@ -216,7 +216,7 @@ for iter in tqdm(range(n_iterations), desc= 'number of iterations', ascii=True):
             __itf_list = []
             for sat_ind in range(n_serving_sat):  # for every satellite
                 # get channels from the chosen satellite to all UEs or BSs
-                oneSat_channel_list = interference_calculator.build_SAT_channel(channel_params_sat[sat_idx], f_c = f)
+                oneSat_channel_list = interference_calculator.build_SAT_channel(channel_params_sat[sat_ind], f_c = f)
                 #oneSat_channel_list = sat_itf_H_update[sat_ind]
                 # oneSat_channel_list: (bs_sector_index, bs_index) -> channels
 
