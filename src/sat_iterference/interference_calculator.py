@@ -225,9 +225,7 @@ class InterferenceCaculator(object):
                 bs_to_sat_itf = []
 
                 for sect_and_sat_index in sat_itf_H[_idx].keys():
-                    #sect_ind, sat_ind = sect_and_sat_index
-                    #if sect_ind == self.bs_to_sect_ind_map[_idx]:
-                    bs_to_sat_itf.append(sat_itf_H[_idx][sect_and_sat_index]) #[(sect_ind, sat_ind)])
+                    bs_to_sat_itf.append(sat_itf_H[_idx][sect_and_sat_index])
 
                 bs_to_sat_itf = np.array(bs_to_sat_itf).T
 
@@ -272,7 +270,6 @@ class InterferenceCaculator(object):
         ### this function builds "uplink" MIMO channels for all the possible links between all the BSs and satellites
         # channel_parameters: dictionary including channel parameters in the form of pandas-dataframe: bs_index -> channel parameters
         sat_H_list = dict()
-        #sect_ind_list = []
         for _idx in channel_parameters.keys(): # _idx can be index of BS or satellites
             chan_param = channel_parameters[_idx]
             # roate antenna array of UE in random direction
@@ -288,19 +285,17 @@ class InterferenceCaculator(object):
                 #for sector_ind in range(3):
                 sector_ind = 0
                 sat_H_list[(sector_ind, _idx)] = H  # sector index, satellite index or BS index
-                #sect_ind_list.append(0)
             else:
                 chan = get_channel_from_ray_tracing_data(chan_param)
+
                 # place a virtual UE  in the location of satellite
                 # use channel data from sat to bs from ray-tracing resuls: sat -> BS
                 # place a virtual UE in the position of satellite by switching angles: and consider transmission: BS->sat with invert = True
                 out = dir_path_loss_multi_sect(self.arr_gnb, [arr_ue], chan, isdrone=False, disable_ue_elemgain =True, # here ue can be satellite
                                                return_elem_gain=True, invert =True) # invert = True, arrival angles and departure angles are switched
-                #sect_ind_list.append(out['sect_ind'])
-                # let's consider the worst case
+
                 #for sector_ind in range(3):
                 sector_ind = self.bs_to_sect_ind_map[_idx]
-
                 _elem_gain = out['bs_elem_gain_dict'][sector_ind] # consider only downlink transmission from BS
                 _elem_gain_lin = 10 ** (0.05 * _elem_gain)
 
@@ -318,7 +313,7 @@ class InterferenceCaculator(object):
                 H = _sv.sum(0)   # channel frequency response
                 sat_H_list[(sector_ind, _idx)] = H # (sector index, satellite index) or (sector index, BS index)
 
-        return sat_H_list#, sect_ind_list
+        return sat_H_list
 
 
 '''
