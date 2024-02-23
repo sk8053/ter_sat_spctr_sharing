@@ -56,8 +56,8 @@ We used the [wireless Insite](https://www.remcom.com/wireless-insite-em-propagat
 
 | Parameter  | Value |
 | ------------- | ------- |
-| Thickness  | 9 mm |
-| Roughness  | 2 cm |
+| Thickness  | 5 mm |
+| Roughness  | 1 cm |
 |Conductivity | 3.5 S/m|
 |Permittvity | 10.5|      
 
