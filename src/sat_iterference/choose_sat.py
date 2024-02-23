@@ -51,7 +51,8 @@ class ChooseServingSat(object):
         # round off elevation angles so that they can be mapped to remocomm data
         elev_list = np.round(elev_list/10).astype(int)*10
         pl_keys = ['path_loss_%d'%(s+1) for s in range(25)]
-        fr_keys=['link state', 'n_path', 'path_loss_1', 'delay_1', 'aoa_1', 'aod_1', 'zoa_1', 'zod_1']
+        fr_keys=['path_loss_1', 'delay_1', 'aoa_1', 'aod_1', 'zoa_1', 'zod_1']
+        angle_key = {0:'aoa', 1:'aod', 2:'zod', 3:'zoa' }
         df_list = [] # save channel parameters of satellites
         df_LOS_list =[] # save only LOS channel parameters
         # collect all the channel parameters corresponding to all the satellites
@@ -83,10 +84,27 @@ class ChooseServingSat(object):
             # other_pl is attenuation by other factors such as atmosphere or scintillation
             df_el[pl_keys] +=   20 * np.log10(dist / df_el['distance']) + other_pl.value
             df_list.append(df_el)
-            df_first = df_el[fr_keys].copy()
-            # only choose the first path
-            df_first['link state'] = 1
-            df_first['n_path'] = 1 # take only LOS path
+
+            df_first = df_el.copy()#df_el[fr_keys].copy()
+
+            # let's proliferate some paths around LOS paths
+            # create 6 paths around satellite direction
+            df_first['n_path'] = 9  # take additional 8 paths around a LOS path to satellite
+            # elevation and azimuth angles are shifted by delta
+            # create 'nulling region' around LOS path
+            for j in range(8):
+                df_first['path_loss_%d'%(j+2)] = df_first['path_loss_1']
+                df_first['delay_%d' % (j + 2)] = df_first['delay_1']
+                df_first['aoa_%d' % (j + 2)] = df_first['aoa_1']
+                df_first['aod_%d' % (j + 2)] = df_first['aod_1']
+                df_first['zoa_%d' % (j + 2)] = df_first['zoa_1']
+                df_first['zod_%d' % (j + 2)] = df_first['zod_1']
+
+                if j%2 ==0:
+                    df_first[f'{angle_key[j//2]}_{j + 2}'] -=2
+                else:
+                    df_first[f'{angle_key[j//2]}_{j + 2}'] +=2
+
             df_LOS_list.append(df_first)
 
         I = range(len(df_list))

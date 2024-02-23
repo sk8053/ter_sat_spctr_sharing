@@ -144,9 +144,10 @@ for iter in tqdm(range(n_iterations), desc= 'number of iterations', ascii=True):
             # as the worst case, we assume that each BS serve UEs having maximum SNR
             snr_s_selected = [max_v] #np.flip(np.sort(SNR_UEs))[:1]
             # choose a SNR value at random from possible SNRs
-            max_v_new = np.random.choice(snr_s_selected, 1)
+            #max_v_new = np.random.choice(snr_s_selected, 1)
+            #print(max_v)
             # choose UE corresponding to random SNR value chosen
-            ue_index_associated = np.where(SNR_all[bs_idx] == max_v_new)[0][0]
+            ue_index_associated = np.where(SNR_all[bs_idx] == max_v)[0][0]
             associated_ue_indices.append(ue_index_associated)
 
 
@@ -204,7 +205,7 @@ for iter in tqdm(range(n_iterations), desc= 'number of iterations', ascii=True):
                                                         ue_rand_azm_elev_dict=rand_azm_elev_dict, f_c=f)
 
             for bs_ind in itf_bs_ind_active:  # UE or BS index set
-                H = interference_calculator.build_SAT_channel(channel_params_BS[bs_ind], f_c = f)  # one bs to several satellites
+                H = interference_calculator.build_SAT_channel(channel_params_BS[bs_ind], bs_idx = bs_ind,  f_c = f)  # one bs to several satellites
                 sat_itf_H[bs_ind] = H  # H is dictionary, (sector_index, sat index) ->  interference channel
 
 
@@ -215,20 +216,12 @@ for iter in tqdm(range(n_iterations), desc= 'number of iterations', ascii=True):
                                                                           lambda_ = lambda_)
             _delta_g_list[j] = delta_g# gain loss in linear scale
 
-            # change the keys of sat_itf_H for each satellite
-            # old key: bs_index->(bs_sector_index, satellite_index)
-            # new key: sat_index->(bs_sector_index, bs_index)
-            sat_itf_H_update = {sat_ind:dict() for sat_ind in range(n_serving_sat)}
-            for bs_ind in itf_bs_ind_active:  # UE or BS index set
-                for key in sat_itf_H[bs_ind]:
-                    sector_ind, sat_ind = key
-                    sat_itf_H_update[sat_ind][(sector_ind, bs_ind)] = sat_itf_H[bs_ind][key]
 
             __itf_list = []
             for sat_ind in range(n_serving_sat):  # for every satellite
                 # get channels from the chosen satellite to all UEs or BSs
-                #oneSat2_channel_list = interference_calculator.build_SAT_channel(channel_params_sat[sat_idx], f_c = f)
-                oneSat_channel_list = sat_itf_H_update[sat_ind]
+                oneSat_channel_list = interference_calculator.build_SAT_channel(channel_params_sat[sat_ind], f_c = f)
+
                 # oneSat_channel_list: (bs_sector_index, bs_index) -> channels
 
                 itf = 0

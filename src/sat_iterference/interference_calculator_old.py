@@ -228,6 +228,7 @@ class InterferenceCaculator(object):
                     bs_to_sat_itf.append(sat_itf_H[_idx][sect_and_sat_index])
 
                 bs_to_sat_itf = np.array(bs_to_sat_itf).T
+
                 # normalize the interference channel matrix
                 N_t, N_sat_N_sect = bs_to_sat_itf.shape # shape = (N_t, N_sat*N_sect)
                 bs_to_sat_itf = np.sqrt(N_t * N_sat_N_sect) * bs_to_sat_itf / np.linalg.norm(bs_to_sat_itf, ord='fro')
@@ -281,9 +282,8 @@ class InterferenceCaculator(object):
                 path_loss = np.array([np.nan])
                 bs_elem_gain = np.array([np.nan])
                 ue_elem_gain = np.array([np.nan])
-                #for sector_ind in range(3):
-                sector_ind = 0
-                sat_H_list[(sector_ind, _idx)] = H  # sector index, satellite index or BS index
+                for sector_ind in range(3):
+                    sat_H_list[(sector_ind, _idx)] = H  # sector index, satellite index or BS index
             else:
                 chan = get_channel_from_ray_tracing_data(chan_param)
 
@@ -292,12 +292,11 @@ class InterferenceCaculator(object):
                 # place a virtual UE in the position of satellite by switching angles: and consider transmission: BS->sat with invert = True
                 out = dir_path_loss_multi_sect(self.arr_gnb, [arr_ue], chan, isdrone=False, disable_ue_elemgain =True, # here ue can be satellite
                                                return_elem_gain=True, invert =True) # invert = True, arrival angles and departure angles are switched
-
-                #for sector_ind in range(3):
                 if bs_idx == None:
                     sector_ind = self.bs_to_sect_ind_map[_idx]
                 else:
                     sector_ind = self.bs_to_sect_ind_map[bs_idx]
+                #for sector_ind in range(3):
                 _elem_gain = out['bs_elem_gain_dict'][sector_ind] # consider only downlink transmission from BS
                 _elem_gain_lin = 10 ** (0.05 * _elem_gain)
 
