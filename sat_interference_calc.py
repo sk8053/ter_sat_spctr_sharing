@@ -108,7 +108,7 @@ ues_per_bs = {bs_idx:[] for bs_idx in range(len(txy))}
 for i in range(len(txy)):
     txy_i = txy[i]
     dxy = np.linalg.norm(rxy - txy_i[None], axis = 1)
-    I = np.argsort(dxy)[:82] # choose closest  82 UEs from one BS (8496/104)
+    I = np.argsort(dxy)[:82] # choose closest  100 UEs from one BS
     ues_per_bs[i] = I
 
 # collect dataframe per BS for all possible UEs
@@ -142,7 +142,7 @@ for iter in tqdm(range(n_iterations), desc= 'number of iterations', ascii=True):
         if max_v != -200: # if maximum SNR link is not outage
             all_bs_indices.append(bs_idx)  # interfering BS index
             # as the worst case, we assume that each BS serve UEs having maximum SNR
-            snr_s_selected = [max_v] #np.flip(np.sort(SNR_UEs))[:1]
+            #snr_s_selected = SNR_UEs[SNR_UEs>5]#np.flip(np.sort(SNR_UEs))[:10]
             # choose a SNR value at random from possible SNRs
             #max_v_new = np.random.choice(snr_s_selected, 1)
             #print(max_v)

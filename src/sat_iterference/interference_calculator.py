@@ -210,7 +210,7 @@ class InterferenceCaculator(object):
         for _idx in indices_selected: # this can be index of BS or UE
             # beamforming vector toward BS in uplink channel
             H_serv = associated_H[_idx]
-
+            #H_serv = H_serv*np.exp(-1j*)
             if beamforming_scheme == 'SVD':
                 U, S, Vh = np.linalg.svd(H_serv)
                 w_r = U[:, 0]  # take maximum eigen vector as decoder
@@ -228,16 +228,17 @@ class InterferenceCaculator(object):
                     bs_to_sat_itf.append(sat_itf_H[_idx][sect_and_sat_index])
 
                 bs_to_sat_itf = np.array(bs_to_sat_itf).T
+                N_t = bs_to_sat_itf.shape[0]
+
+                bs_to_sat_itf = np.sqrt(N_t)*bs_to_sat_itf/np.linalg.norm(bs_to_sat_itf, axis = 1)[:,None]
+                cov_itf = bs_to_sat_itf.dot(bs_to_sat_itf.conj().T)
                 # normalize the interference channel matrix
-                N_t, N_sat_N_sect = bs_to_sat_itf.shape # shape = (N_t, N_sat*N_sect)
-                bs_to_sat_itf = np.sqrt(N_t * N_sat_N_sect) * bs_to_sat_itf / np.linalg.norm(bs_to_sat_itf, ord='fro')
 
                 # normalize the terrestrial channel matrix
                 N_t, N_r = H_serv.shape
                 H_serv2 = np.sqrt(N_t * N_r) * H_serv / np.linalg.norm(H_serv, ord='fro')
-
                 cov_terr = H_serv2.conj().T.dot(w_r).dot(w_r.conj().T).dot(H_serv2)
-                cov_itf = bs_to_sat_itf.dot(bs_to_sat_itf.conj().T)
+
 
                 Q = cov_terr - lambda_ * cov_itf
 
@@ -313,6 +314,7 @@ class InterferenceCaculator(object):
                 exp_phase = np.exp(-2 * np.pi * 1j * f_c * np.array(dly))
                 _sv = (exp_phase[:, None] * _sv) * g[:, None]
                 H = _sv.sum(0)   # channel frequency response
+                #H = np.sqrt(H.shape[0])*H/np.linalg.norm(H)
                 sat_H_list[(sector_ind, _idx)] = H # (sector index, satellite index) or (sector index, BS index)
 
         return sat_H_list
