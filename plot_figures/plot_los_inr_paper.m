@@ -1,11 +1,6 @@
 clear;
-
-G_T = 13;
-EK = -198.6;
-BW = 30e6;
-bs_tx_power = 33;
-inr_all = importdata('data_new/downlink_inr_SVD_0.txt');
-elem_all = importdata('data_new/downlink_elev_ang_SVD_0.txt');
+inr_all = importdata('data8t8/downlink_inr_12GHz_SVD_21.txt');
+elem_all = importdata('data8t8/downlink_elev_ang_12GHz_SVD_21.txt');
 
 
 I1 = (elem_all>=25) &(elem_all<=45);
@@ -48,7 +43,6 @@ ax.GridLineWidth = 2;
 ax.XAxis.FontSize = 11;
 ax.YAxis.FontSize = 11;
 xline(-6, 'k:', 'LineWidth',1.5);
-xticks(linspace(-20,10,4));
 set(gca, 'XTick', sort([-6, get(gca, 'XTick')]));
 grid on;
 legend ('$\theta \geq 25^\circ$', '$45^\circ\geq \theta \geq 25^\circ$', ...
@@ -61,23 +55,25 @@ xlabel('INR [dB]', 'fontsize', 13, ...
     'Interpreter','latex');
 ylabel ('CDF', 'FontSize',13,...
     'Interpreter','latex');
-xlim([-23,10])
-
+xlim([-15,20])
+%title ('INR of satellites', fontsize = 13);
 title('')
 set(gcf,'Position',[100 100 500 300]);
-exportgraphics(gcf,'figures/inr_elev.png', 'Resolution',600);
+%exportgraphics(gcf,'figures/los_inrs.png', 'Resolution',400);
+%exportgraphics(gcf,'figures/inr_elev.png', 'Resolution',600);
+exportgraphics(gcf,'figures/inr_elev.eps');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-figure();
+
 t = tiledlayout(1,1);
 t.TileSpacing = 'compact';
 t.Padding = 'compact';
-
+%subplot(1,2,1);
 nexttile;
 set(gca,'fontname','times new roman');
 h = histogram(elem_all,17,'Normalization','pdf');
-
+%h.Values = h.Values/60;
 grid on;
 ax = gca;
 ax = gca;
@@ -87,7 +83,9 @@ ax.YAxis.FontSize = 11;
 set(gca, 'XTick', sort([25, get(gca, 'XTick')]));
 xlabel('Elevation angle [$^\circ$]','interpreter', 'latex', 'fontsize', 13);
 ylabel ('PDF', 'FontSize',13, 'Interpreter','latex', 'fontsize', 13);
+%title ('PDF of satellite elevation angles', fontsize =13);
 
 title('');
 set(gcf,'Position',[100 100 500 300]);
-exportgraphics(gcf,'figures/elev_pdf.png', 'Resolution',600);
+%exportgraphics(gcf,'figures/elev_pdf.png', 'Resolution',600);
+exportgraphics(gcf,'figures/elev_pdf.eps');
