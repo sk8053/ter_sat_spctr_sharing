@@ -214,6 +214,7 @@ class RotatedArray(ArrayBase):
         # Super constructor
         ArrayBase.__init__(self,**kwargs)
         self.arr = arr
+        self.fc = self.arr.fc
         self.phi0 = phi0
         self.theta0 = theta0
         self.drone  = drone
