@@ -10,7 +10,7 @@ Our findings offer a promising pathway for efficient spectrum sharing in the upp
 https://arxiv.org/abs/2311.12965
 
 This paper will be published in [ICC 2024](https://icc2024.ieee-icc.org/)
-The presentation slids are here ```[ICC2024_Presentation_seongjoonkang.pdf](https://github.com/user-attachments/files/22982883/ICC2024_Presentation_seongjoonkang.pdf)
+The presentation slids are [here](https://github.com/user-attachments/files/22982883/ICC2024_Presentation_seongjoonkang.pdf)
 ## Satellite Tracking
 In order to track the location of satellites in the given time, run the file, **‘track_satellites.py’**.  <br /> 
 
